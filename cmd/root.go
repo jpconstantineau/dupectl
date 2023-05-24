@@ -35,19 +35,20 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "dupectl",
 	Short: "Duplicate File Manager",
-	Long: `        
+	Long: `
+	Duplicate File Manager        
 	 _____                    _____ _______ _      
 	|  __ \                  / ____|__   __| |     
 	| |  | |_   _ _ __   ___| |       | |  | |     
 	| |  | | | | | '_ \ / _ \ |       | |  | |     
 	| |__| | |_| | |_) |  __/ |____   | |  | |____ 
 	|_____/ \__,_| .__/ \___|\_____|  |_|  |______|
-				 | |                               
-				 |_|                               			
+                     | |                               
+                     |_|                               			
 	
-	Duplicate File Manager Control CLI
-
-Enables searching for Duplicate Files and manage their retention`,
+	
+Enables searching for Duplicate Files and manage their retention.
+Requires configuration file with database connection settings`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
