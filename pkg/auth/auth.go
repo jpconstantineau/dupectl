@@ -16,7 +16,7 @@ import (
 )
 
 func getSecret() []byte {
-	data := viper.GetString("server.serverid")
+	data := viper.GetString("server.serverid") + viper.GetString("server.apikey")
 	SECRET := []byte(data)
 	return SECRET
 }
