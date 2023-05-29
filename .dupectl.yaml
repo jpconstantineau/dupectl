@@ -1,0 +1,16 @@
+client:
+    apikey: ""
+    apiport: "3000"
+    apitoken: ""
+    clientid: WmVuLTEwMDAtOTE3NTc4ODE1OTg=
+    uniqueid: 37fac48fc87f40919215677c5f33326c
+database:
+    dbname: dupedb
+    hostname: 127.0.0.1
+    password: ""
+    port: "3306"
+    username: root
+server:
+    apikey: ffc091989fc24ea391993079ccd7c5d6
+    port: "3000"
+    serverid: WmVuLTEwMDAtOTE3NTc4ODE1OTg=

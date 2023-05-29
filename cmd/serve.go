@@ -22,23 +22,19 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/jpconstantineau/dupectl/pkg/api"
 	"github.com/spf13/cobra"
 )
 
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Launches Duplicate File Manager Web Server",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Launches Duplicate File Manager Web Server and API",
+	Long: `Launches Duplicate File Manager Web Server and API
+	
+	Uses parameters in server section of .dupectl.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("serve called")
+		api.RunApi()
 	},
 }
 

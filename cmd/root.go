@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jpconstantineau/dupectl/pkg/auth"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -77,6 +78,25 @@ func init() {
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
+func setDefaults() {
+	viper.SetDefault("database.username", "root")
+	viper.SetDefault("database.password", "")
+	viper.SetDefault("database.hostname", "127.0.0.1")
+	viper.SetDefault("database.port", "3306")
+	viper.SetDefault("database.dbname", "dupedb")
+
+	viper.SetDefault("server.port", "3000")
+	viper.SetDefault("server.apikey", auth.GenerateAPISeed())
+	viper.SetDefault("server.serverid", auth.GenerateMachineID())
+
+	viper.SetDefault("client.apiport", "3000")
+	viper.SetDefault("client.uniqueid", auth.GenerateAPISeed())
+	viper.SetDefault("client.clientid", auth.GenerateMachineID())
+	viper.SetDefault("client.apikey", "")
+	viper.SetDefault("client.apitoken", "")
+
+}
+
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	if cfgFile != "" {
@@ -89,14 +109,16 @@ func initConfig() {
 
 		// Search config in home directory with name ".dupectl" (without extension).
 		viper.AddConfigPath(home)
+		viper.AddConfigPath(".")
 		viper.SetConfigType("yaml")
 		viper.SetConfigName(".dupectl")
 	}
+	setDefaults()
 
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+		fmt.Fprintln(os.Stderr, "Using config file: ", viper.ConfigFileUsed())
 	}
 }
