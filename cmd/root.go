@@ -111,7 +111,7 @@ func initConfig() {
 		viper.AddConfigPath(home)
 		viper.AddConfigPath(".")
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".dupectl")
+		viper.SetConfigName(".dupectl.yaml")
 	}
 	setDefaults()
 
