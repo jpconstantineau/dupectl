@@ -1,6 +1,8 @@
 # dupectl: Duplicate File Manager
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/jpconstantineau/dupectl)](https://goreportcard.com/report/github.com/jpconstantineau/dupectl)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/jpconstantineau/dupectl)  
+ ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/jpconstantineau/dupectl)  [![Go Report Card](https://goreportcard.com/badge/github.com/jpconstantineau/dupectl)](https://goreportcard.com/report/github.com/jpconstantineau/dupectl)  
+
 
 ```
 	 _____                    _____ _______ _      
@@ -12,6 +14,7 @@
                      | |                               
                      |_|                               			
 ```
+## Take control of your duplicate files!
 	
 ### Enables searching for Duplicate Files and manage their retention.
 
