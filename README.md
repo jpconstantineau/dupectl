@@ -18,9 +18,26 @@
 	
 ### Enables searching for Duplicate Files and manage their retention.
 
+Unlike other applications, DupeCTL's focus is to create a catalog of all files from multiple locations and systems, including file servers and home NAS.
+Once the catalog is created, the folders can be assigned metadata which will help prioritize which copy of duplicate files can be marked for deletion.
+
+As such, the architecture of DupeCTL allows for a central server application to gather folder and file information provided by clients applications (located on the various machines) into a common database.
+
+At this point, DupeCTL does not handle media files any differently than any other files.  As such, it will not identify similar images, videos or music/audio files of different formats and sizes.
+
+DupeCTL will consider revisions/versions as different files, as long as their hash is different.
+
 DupeCTL is a single go binary that provides the functionality needed to:
+- Scan folders on local drive (or network share) and store the following in a database:
+    - Host
+    - Folder Name
+    - User ID and Group ID (Linux)
+    - created, modified, accessed and birth dates
 - Scan files on a local drive (or network share) and store the following in a database:
+    - Host
+    - Folder ID  (from Folder scan)
     - File name
+    - User ID and Group ID (Linux)
     - created, modified, accessed and birth dates
     - file size
     - file hash (SHA512)
