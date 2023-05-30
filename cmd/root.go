@@ -89,6 +89,7 @@ func setDefaults() {
 	viper.SetDefault("server.apikey", auth.GenerateAPISeed())
 	viper.SetDefault("server.serverid", auth.GenerateMachineID())
 
+	viper.SetDefault("client.apihost", "localhost")
 	viper.SetDefault("client.apiport", "3000")
 	viper.SetDefault("client.uniqueid", auth.GenerateAPISeed())
 	viper.SetDefault("client.clientid", auth.GenerateMachineID())
