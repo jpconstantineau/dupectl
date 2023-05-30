@@ -1,5 +1,7 @@
 # dupectl: Duplicate File Manager
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/jpconstantineau/dupectl)](https://goreportcard.com/report/github.com/jpconstantineau/dupectl)
+
 ```
 	 _____                    _____ _______ _      
 	|  __ \                  / ____|__   __| |     
