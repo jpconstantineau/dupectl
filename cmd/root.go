@@ -79,13 +79,15 @@ func init() {
 }
 
 func setDefaults() {
-	viper.SetDefault("database.username", "root")
-	viper.SetDefault("database.password", "")
-	viper.SetDefault("database.hostname", "127.0.0.1")
-	viper.SetDefault("database.port", "3306")
-	viper.SetDefault("database.dbname", "dupedb")
+	viper.SetDefault("server.database.type", "sqlite")
+	viper.SetDefault("server.database.mysql.username", "root")
+	viper.SetDefault("server.database.mysql.password", "")
+	viper.SetDefault("server.database.mysql.hostname", "127.0.0.1")
+	viper.SetDefault("server.database.mysql.port", "3306")
+	viper.SetDefault("server.database.mysql.dbname", "dupedb")
+	viper.SetDefault("server.database.sqlite.name", "dupedb.db")
 
-	viper.SetDefault("server.port", "3000")
+	viper.SetDefault("server.apiport", "3000")
 	viper.SetDefault("server.apikey", auth.GenerateAPISeed())
 	viper.SetDefault("server.serverid", auth.GenerateMachineID())
 
@@ -94,7 +96,7 @@ func setDefaults() {
 	viper.SetDefault("client.uniqueid", auth.GenerateAPISeed())
 	viper.SetDefault("client.clientid", auth.GenerateMachineID())
 	viper.SetDefault("client.apikey", "")
-	viper.SetDefault("client.apitoken", "")
+	viper.SetDefault("client.token", "")
 
 }
 

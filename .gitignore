@@ -22,3 +22,6 @@ go.work
 
 # Config/Secrets
 .dupectl.yaml
+
+# database
+dupedb.db

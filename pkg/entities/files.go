@@ -4,78 +4,75 @@ import (
 	"time"
 )
 
-type Status struct {
-	id   int
-	name string
-}
-
 type Host struct {
-	id   int
-	name string
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 type Owner struct {
-	id   int
-	name string
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 type Policy struct {
-	id   int
-	name string
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 type Purpose struct {
-	id   int
-	name string
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 type Agent struct {
-	id      int
-	name    string
-	guid    string
-	enabled bool
-	status  Status
+	Id      int        `json:"id"`
+	Name    string     `json:"name"`
+	Guid    string     `json:"uid"`
+	Enabled bool       `json:"enabled"`
+	Updated time.Time  `json:"updated"`
+	Status  StatusName `json:"status"`
 }
 
 type RootFolder struct {
-	id      int
-	name    string
-	host    Host
-	owner   Owner
-	agent   Agent
-	purpose Purpose
-	status  Status
+	Id      int        `json:"id"`
+	Name    string     `json:"name"`
+	Host    Host       `json:"host"`
+	Owner   Owner      `json:"owner"`
+	Agent   Agent      `json:"agent"`
+	Purpose Purpose    `json:"purpose"`
+	Status  StatusName `json:"status"`
 }
 
 type Folder struct {
-	id      int
-	name    string
-	owner   Owner
-	agent   Agent
-	purpose Purpose
-	status  Status
-}
-
-type filemsg struct {
-	host     string
-	fullname string
-	path     string
-	name     string
-	ext      string
-	size     int64
-	atime    time.Time
-	mtime    time.Time
-	ctime    time.Time
-	btime    time.Time
-	hash     string
+	Id      int        `json:"id"`
+	Name    string     `json:"name"`
+	Owner   Owner      `json:"owner"`
+	Agent   Agent      `json:"agent"`
+	Purpose Purpose    `json:"purpose"`
+	Status  StatusName `json:"status"`
 }
 
 type foldermsg struct {
-	fullname string
-	path     string
-	name     string
-	atime    time.Time
-	mtime    time.Time
-	ctime    time.Time
-	btime    time.Time
+	Host     string    `json:"host"`
+	Fullname string    `json:"fullname"`
+	Path     string    `json:"path"`
+	Name     string    `json:"name"`
+	Atime    time.Time `json:"atime"`
+	Mtime    time.Time `json:"mtime"`
+	Ctime    time.Time `json:"ctime"`
+	Btime    time.Time `json:"btime"`
+}
+
+type filemsg struct {
+	Host     string    `json:"host"`
+	Fullname string    `json:"fullname"`
+	Path     string    `json:"path"`
+	Name     string    `json:"name"`
+	Ext      string    `json:"ext"`
+	Size     int64     `json:"size"`
+	Atime    time.Time `json:"atime"`
+	Mtime    time.Time `json:"mtime"`
+	Ctime    time.Time `json:"ctime"`
+	Btime    time.Time `json:"btime"`
+	Hash     string    `json:"hash"`
 }

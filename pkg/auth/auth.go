@@ -71,6 +71,16 @@ func GenerateMachineID() string {
 	return encoded
 }
 
+func DecodeMachineID(clientID string) (string, error) {
+	decoded, err := base64.StdEncoding.DecodeString(clientID)
+	if err != nil {
+		return "", err
+	} else {
+		decstr := string(decoded)
+		return decstr, nil
+	}
+}
+
 func GenerateAPISeed() string {
 	uuidWithHyphen := uuid.New()
 	uuid := strings.Replace(uuidWithHyphen.String(), "-", "", -1)
@@ -118,6 +128,30 @@ func GetJWT(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte("Not Authorized - No key"))
 	}
+}
+
+func RegisterJWT(next func(w http.ResponseWriter, r *http.Request)) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header["Key"] != nil {
+			if r.Header["Key"][0] == getApiKey() {
+				token, err := CreateJWT(r.Header)
+				if err != nil {
+					return
+				} else {
+					fmt.Fprint(w, token)
+					next(w, r)
+				}
+
+			} else {
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte("Not Authorized - Invalid key"))
+			}
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Not Authorized - No key"))
+		}
+
+	})
 }
 
 func ValidateJWT(next func(w http.ResponseWriter, r *http.Request)) http.Handler {
