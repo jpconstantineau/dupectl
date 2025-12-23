@@ -11,6 +11,7 @@ import (
 	purpose "github.com/jpconstantineau/dupectl/pkg/api/purpose"
 	root "github.com/jpconstantineau/dupectl/pkg/api/rootfolder"
 	"github.com/jpconstantineau/dupectl/pkg/auth"
+	"github.com/jpconstantineau/dupectl/pkg/web"
 	"github.com/spf13/viper"
 )
 
@@ -32,6 +33,7 @@ func RunApi() {
 
 	http.Handle("/api/agent/register", auth.RegisterJWT(agent.RegisterAgent))
 	//http.HandleFunc("/register", auth.GetJWT)
+	web.SetupStaticWeb()
 	fmt.Println("serving on port " + port)
 	http.ListenAndServe(":"+port, nil)
 }

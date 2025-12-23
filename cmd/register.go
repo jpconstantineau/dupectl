@@ -4,15 +4,15 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/jpconstantineau/dupectl/pkg/apiclient"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // registerCmd represents the register command
 var registerCmd = &cobra.Command{
 	Use:   "register",
-	Short: "Register scan agent",
+	Short: "Register scan agent with server",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
@@ -20,12 +20,14 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("register called")
+		apiclient.RegisterClient()
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(registerCmd)
+	registerCmd.Flags().String("apikey", "apikey", "API Key to use to connect to server")
+	viper.BindPFlag("client.apikey", registerCmd.Flags().Lookup("apikey"))
 
 	// Here you will define your flags and configuration settings.
 
