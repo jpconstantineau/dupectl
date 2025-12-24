@@ -39,6 +39,25 @@ func connectSqliteDB(dbPath string) (*sql.DB, error) {
 	return db, nil
 }
 
+// GetDB returns a database connection
+func GetDB() (*sql.DB, error) {
+	return startDb()
+}
+
 func InitAllTables() {
+	db, err := startDb()
+	if err != nil {
+		fmt.Printf("Error connecting to database: %v\n", err)
+		return
+	}
+	defer db.Close()
+
+	// Apply schema migrations
+	if err := ApplyMigrations(db); err != nil {
+		fmt.Printf("Error applying migrations: %v\n", err)
+		return
+	}
+
 	initAgentTable()
+	fmt.Println("Database initialized successfully")
 }

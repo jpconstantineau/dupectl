@@ -6,34 +6,76 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/jpconstantineau/dupectl/pkg/datastore"
+	"github.com/jpconstantineau/dupectl/pkg/formatter"
 	"github.com/spf13/cobra"
+)
+
+var (
+	getDuplicatesJSON     bool
+	getDuplicatesMinCount int
+	getDuplicatesRoot     string
+	getDuplicatesMinSize  int64
+	getDuplicatesSort     string
 )
 
 // getDuplicatesCmd represents the getDuplicates command
 var getDuplicatesCmd = &cobra.Command{
-	Use:   "Duplicates",
-	Short: "Get list of duplicate files",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:   "duplicates",
+	Short: "Query and display duplicate files",
+	Long: `Query duplicate files identified during scans.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("getDuplicates called")
+Display duplicate file sets with optional filtering by count, size, or root folder.
+Output can be formatted as human-readable table (default) or JSON.
+
+Example:
+  dupectl get duplicates
+  dupectl get duplicates --min-count 5
+  dupectl get duplicates --min-size 1048576 --json
+  dupectl get duplicates --sort count`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Build filter
+		filter := datastore.DuplicateFilter{
+			MinCount:  getDuplicatesMinCount,
+			RootPath:  getDuplicatesRoot,
+			MinSize:   getDuplicatesMinSize,
+			SortField: getDuplicatesSort,
+		}
+
+		// Query duplicates
+		sets, err := datastore.GetDuplicateFiles(filter)
+		if err != nil {
+			return fmt.Errorf("failed to query duplicates: %w", err)
+		}
+
+		// Get statistics
+		totalSets, totalFiles, wastedBytes, recoverableBytes, err := datastore.GetDuplicateStats()
+		if err != nil {
+			return fmt.Errorf("failed to get duplicate stats: %w", err)
+		}
+
+		// Format output
+		if getDuplicatesJSON {
+			output, err := formatter.FormatDuplicatesJSON(sets, totalSets, totalFiles, wastedBytes, recoverableBytes)
+			if err != nil {
+				return fmt.Errorf("failed to format JSON: %w", err)
+			}
+			fmt.Println(output)
+		} else {
+			output := formatter.FormatDuplicatesTable(sets, totalSets, totalFiles, wastedBytes, recoverableBytes)
+			fmt.Print(output)
+		}
+
+		return nil
 	},
 }
 
 func init() {
 	getCmd.AddCommand(getDuplicatesCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// getDuplicatesCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// getDuplicatesCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	getDuplicatesCmd.Flags().BoolVar(&getDuplicatesJSON, "json", false, "Output in JSON format")
+	getDuplicatesCmd.Flags().IntVar(&getDuplicatesMinCount, "min-count", 2, "Minimum number of duplicates")
+	getDuplicatesCmd.Flags().StringVar(&getDuplicatesRoot, "root", "", "Filter by root folder path")
+	getDuplicatesCmd.Flags().Int64Var(&getDuplicatesMinSize, "min-size", 0, "Minimum file size in bytes")
+	getDuplicatesCmd.Flags().StringVar(&getDuplicatesSort, "sort", "size", "Sort by: size, count, or path")
 }

@@ -1,31 +1,82 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
+	"github.com/jpconstantineau/dupectl/pkg/datastore"
+	"github.com/jpconstantineau/dupectl/pkg/entities"
+	"github.com/jpconstantineau/dupectl/pkg/scanner"
 	"github.com/spf13/cobra"
 )
 
+var scanFilesVerbose bool
+
 // scanFilesCmd represents the scanFiles command
 var scanFilesCmd = &cobra.Command{
-	Use:   "Files",
-	Short: "Only Scan files",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:   "files <root-path>",
+	Short: "Hash files in previously scanned folders",
+	Long: `Hash files in folders that have already been scanned.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("scanFiles called")
+This is useful after running 'scan folders' to defer file hashing, or to re-hash
+files after they have been modified.
+
+Example:
+  dupectl scan files /data/archive
+  dupectl scan files /backup --verbose`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		rootPath := args[0]
+
+		// Convert to absolute path
+		absPath, err := filepath.Abs(rootPath)
+		if err != nil {
+			return fmt.Errorf("failed to get absolute path: %w", err)
+		}
+
+		// Verify path exists
+		info, err := os.Stat(absPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("path does not exist: %s", absPath)
+			}
+			return fmt.Errorf("failed to access path: %w", err)
+		}
+
+		if !info.IsDir() {
+			return fmt.Errorf("path is not a directory: %s", absPath)
+		}
+
+		// Ensure root folder exists in database
+		rootFolderID, err := datastore.EnsureRootFolder(absPath, info.Name())
+		if err != nil {
+			return fmt.Errorf("failed to ensure root folder: %w", err)
+		}
+
+		// Create scanner
+		s, err := scanner.NewFileSystemScanner(scanFilesVerbose)
+		if err != nil {
+			return fmt.Errorf("failed to create scanner: %w", err)
+		}
+
+		// Setup signal handler
+		ctx := scanner.SetupSignalHandler()
+
+		// Perform scan
+		fmt.Printf("Scanning files: %s\n", absPath)
+		err = s.Scan(ctx, absPath, rootFolderID, entities.ScanModeFiles)
+		if err != nil {
+			return fmt.Errorf("scan failed: %w", err)
+		}
+
+		return nil
 	},
 }
 
 func init() {
 	scanCmd.AddCommand(scanFilesCmd)
+	scanFilesCmd.Flags().BoolVarP(&scanFilesVerbose, "verbose", "v", false, "Enable verbose logging")
 
 	// Here you will define your flags and configuration settings.
 

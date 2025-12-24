@@ -22,23 +22,26 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
 // scanCmd represents the scan command
 var scanCmd = &cobra.Command{
 	Use:   "scan",
-	Short: "Scan folders and files",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Scan folders and files for duplicate detection",
+	Long: `Scan folders and files to identify duplicates.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+The scan command provides three modes:
+  - scan all: Complete scan of folders and files with hashing
+  - scan folders: Quick folder structure mapping (no file hashing)
+  - scan files: Hash files in previously scanned folders
+
+Example:
+  dupectl scan all /path/to/data
+  dupectl scan folders /path/to/archive
+  dupectl scan files /path/to/documents`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("scan called")
+		cmd.Help()
 	},
 }
 

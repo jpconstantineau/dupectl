@@ -22,13 +22,13 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create pkg/scanner/ directory structure per plan.md project structure
-- [ ] T002 Create pkg/hash/ directory structure per plan.md project structure
-- [ ] T003 Create pkg/detector/ directory structure per plan.md project structure
-- [ ] T004 Create pkg/formatter/ directory structure per plan.md project structure
-- [ ] T005 [P] Create tests/unit/ directory for unit tests
-- [ ] T006 [P] Create tests/integration/ directory for integration tests
-- [ ] T007 [P] Create tests/e2e/ directory for end-to-end tests
+- [X] T001 Create pkg/scanner/ directory structure per plan.md project structure
+- [X] T002 Create pkg/hash/ directory structure per plan.md project structure
+- [X] T003 Create pkg/detector/ directory structure per plan.md project structure
+- [X] T004 Create pkg/formatter/ directory structure per plan.md project structure
+- [X] T005 [P] Create tests/unit/ directory for unit tests
+- [X] T006 [P] Create tests/integration/ directory for integration tests
+- [X] T007 [P] Create tests/e2e/ directory for end-to-end tests
 
 ---
 

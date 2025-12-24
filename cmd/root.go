@@ -98,6 +98,12 @@ func setDefaults() {
 	viper.SetDefault("client.apikey", "")
 	viper.SetDefault("client.token", "")
 
+	// Scan configuration defaults
+	viper.SetDefault("scan.hash_algorithm", "sha256")
+	viper.SetDefault("scan.progress_interval", "10s")
+	viper.SetDefault("scan.batch_size", 1000)
+	viper.SetDefault("scan.concurrent_hashers", 4)
+
 }
 
 // initConfig reads in config file and ENV variables if set.
