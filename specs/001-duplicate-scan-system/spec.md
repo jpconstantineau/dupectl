@@ -136,7 +136,7 @@ A user wants to view the duplicate files that have been identified during scans,
 - **FR-008**: System MUST highlight key differences in partial matches: missing files from either side and files with same name but different dates
 - **FR-009**: System MUST distinguish between folder registration (folder scan) and file content analysis (file scan)
 - **FR-010**: Folder scan MUST register folder hierarchy without calculating file hashes
-- **FR-011**: File scan MUST process files within already-registered folders without re-traversing folder structure
+- **FR-011**: File scan MUST process files within folders that have existing records in the folders table (from prior folder scan) without re-traversing filesystem folder structure
 - **FR-012**: System MUST persist all scan results to database for later query and analysis
 - **FR-013**: System MUST provide progress indication during scan operations showing folders/files processed
 - **FR-013.1**: Progress updates MUST be output to console at configurable time intervals with default of 10 seconds
@@ -164,7 +164,7 @@ A user wants to view the duplicate files that have been identified during scans,
 - **NFR-001 Performance**: File hashing should achieve minimum throughput of 50 MB/sec on standard hardware to enable reasonable scan times for large datasets
 - **NFR-002 Performance**: System should handle scanning of at least 100,000 files without memory overflow or excessive memory consumption (stay under 500 MB RAM)
 - **NFR-003 Portability**: Scan operations must work identically on Windows, Linux, and macOS without platform-specific behavior
-- **NFR-004 Observability**: Provide clear progress indication with counts of folders/files processed and estimated time remaining, updated at configurable intervals (default 10 seconds) to avoid excessive console output
+- **NFR-004 Observability**: Provide clear progress indication with counts of folders/files processed and estimated time, updated at configurable intervals (default 10 seconds) to avoid excessive console output
 - **NFR-005 Observability**: Log all scan operations including start/end times, files processed, errors encountered, and results summary
 - **NFR-006 Security**: Handle file access permissions gracefully - display permission errors to console during scan, mark affected files in database with error status to avoid repeated attempts in future scans, and continue with remaining files without crashing
 - **NFR-007 Maintainability**: Separate concerns: folder traversal logic, file hashing logic, duplicate detection logic, and database operations should be in distinct modules
