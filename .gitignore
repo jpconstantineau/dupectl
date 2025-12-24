@@ -25,3 +25,28 @@ go.work
 
 # database
 dupedb.db
+
+# Test artifacts and coverage
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# IDE and editor files
+.vscode/
+.idea/
+*.iml
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+*.log
