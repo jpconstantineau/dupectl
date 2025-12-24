@@ -14,6 +14,11 @@
 - Q: When scans are interrupted, should system resume from checkpoint or restart from beginning? → A: Resume from last checkpoint - track progress in database and continue where stopped
 - Q: What is the minimum similarity threshold for detecting partial folder duplicates? → A: 50% minimum similarity threshold
 - Q: Should scan data (files/folders/hashes) use existing agent tables or new dedicated tables? → A: Hybrid - use existing agent/host relationships but separate tables for file/folder/hash data
+- Q: How do users specify which root folder to scan when multiple roots are registered? → A: Scan commands require mandatory positional argument for root folder path
+- Q: What happens when user scans a root folder path that isn't registered in database? → A: Prompt user for confirmation to register before scanning
+- Q: How should system handle relative paths vs absolute paths for root folders? → A: Convert to absolute, store absolute
+- Q: How should permission errors be logged during scans? → A: Console only and mark in database for future scans
+- Q: What output format should the get duplicates command use? → A: Command line options for JSON or table format
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -27,9 +32,10 @@ A user wants to perform a complete scan of their root folder to identify all dup
 
 **Acceptance Scenarios**:
 
-1. **Given** a root folder containing multiple files and subfolders with some duplicate content, **When** user executes the scan all command, **Then** the system recursively traverses the folder tree, hashes all files, stores hash values in database, and identifies all duplicate files (matching size and hash) and duplicate folders (identical subtrees)
+1. **Given** a root folder containing multiple files and subfolders with some duplicate content, **When** user executes the scan all command with root folder path (e.g., `dupectl scan all /path/to/root`), **Then** the system recursively traverses the folder tree, hashes all files, stores hash values in database, and identifies all duplicate files (matching size and hash) and duplicate folders (identical subtrees)
 2. **Given** a scan is in progress, **When** user monitors the operation, **Then** the system provides progress indication showing folders and files processed
 3. **Given** a scan has completed, **When** user retrieves results, **Then** the system reports total files scanned, duplicate files found, and duplicate folders identified
+4. **Given** user provides a root folder path that exists on filesystem but is not registered in database, **When** scan command is executed, **Then** system prompts for confirmation to register the root folder and proceeds with scan only if user confirms
 
 ---
 
@@ -43,7 +49,7 @@ A user wants to quickly map out the folder structure and establish monitoring on
 
 **Acceptance Scenarios**:
 
-1. **Given** a root folder with deep nested folder structure, **When** user executes the scan folders command, **Then** the system recursively traverses and registers all folders in the database without processing file contents
+1. **Given** a root folder with deep nested folder structure, **When** user executes the scan folders command with root folder path (e.g., `dupectl scan folders /path/to/root`), **Then** the system recursively traverses and registers all folders in the database without processing file contents
 2. **Given** folders have been scanned, **When** user later requests duplicate folder detection, **Then** the system indicates that file scanning is required before folder duplicates can be identified
 3. **Given** a folder scan is complete, **When** user views registered folders, **Then** the system shows the complete folder hierarchy with folder counts and registration timestamps
 
@@ -59,7 +65,7 @@ A user wants to scan and hash all files within already-registered folders withou
 
 **Acceptance Scenarios**:
 
-1. **Given** folders have been previously registered in the database, **When** user executes the scan files command, **Then** the system processes all files within registered folders, calculates hash values, stores them in database, and identifies duplicate files
+1. **Given** folders have been previously registered in the database, **When** user executes the scan files command with root folder path (e.g., `dupectl scan files /path/to/root`), **Then** the system processes all files within registered folders, calculates hash values, stores them in database, and identifies duplicate files
 2. **Given** some files have been modified since last scan, **When** user runs file scan again, **Then** the system updates hash values for changed files and recalculates duplicate matches
 3. **Given** file scanning is complete, **When** user queries duplicates, **Then** the system returns accurate duplicate file listings based on size and hash matching
 
@@ -81,10 +87,28 @@ A user wants to find folders that are mostly similar but not identical - where a
 
 ---
 
+### User Story 5 - Query and View Duplicate Files (Priority: P1)
+
+A user wants to view the duplicate files that have been identified during scans, with the ability to filter results and choose between human-readable or machine-parseable output formats.
+
+**Why this priority**: This is essential for the primary use case - users need to see the results of duplicate detection. Without query capability, scan results are trapped in database with no visibility.
+
+**Independent Test**: Can be tested independently after scans have been performed by querying duplicates and verifying output format, grouping, and filtering work correctly.
+
+**Acceptance Scenarios**:
+
+1. **Given** duplicate files have been identified during scans, **When** user executes get duplicates command with default options (e.g., `dupectl get duplicates`), **Then** system displays results in human-readable table format with files grouped by duplicate set showing size, hash, and file paths
+2. **Given** user needs machine-readable output for scripting, **When** user executes get duplicates command with --json flag (e.g., `dupectl get duplicates --json`), **Then** system outputs structured JSON with duplicate sets and file metadata
+3. **Given** user wants to filter high-duplication files, **When** user executes get duplicates with --min-count filter (e.g., `dupectl get duplicates --min-count=5`), **Then** system returns only duplicate sets containing 5 or more files
+
+---
+
 ### Edge Cases
 
 - What happens when a scan is interrupted mid-process (system crash, user cancellation)? System resumes from last checkpoint using database-tracked progress
-- How does system handle files that cannot be read due to permissions?
+- What happens when user provides a root folder path that doesn't exist or isn't registered in the database? If path exists on filesystem but not in database, prompt for registration confirmation; if path doesn't exist on filesystem, reject with clear error message
+- What happens when user provides a relative path vs absolute path for root folder? System converts relative paths to absolute paths using current working directory before validation and storage
+- How does system handle files that cannot be read due to permissions? Display error to console, mark file in database with error status, and continue scanning remaining files
 - What happens when file sizes are identical but hashes differ?
 - How does system handle symbolic links, shortcuts, or hard links?
 - What happens when folders contain millions of small files versus few very large files?
@@ -97,10 +121,14 @@ A user wants to find folders that are mostly similar but not identical - where a
 ### Functional Requirements
 
 - **FR-001**: System MUST provide three distinct scan modes: scan all (folders + files), scan folders only, scan files only
+- **FR-001.1**: All scan commands MUST accept a mandatory positional argument specifying the root folder path to scan (format: `dupectl scan <mode> <root-folder-path>`)
+- **FR-001.2**: If provided root folder path is not registered in database, system MUST prompt user for confirmation to register it before proceeding with scan, allowing user to cancel if path was incorrect
+- **FR-001.3**: System MUST convert relative root folder paths to absolute paths before storage and processing to ensure path consistency across different working directories
 - **FR-002**: System MUST recursively traverse folder trees starting from registered root folders
 - **FR-003**: System MUST calculate cryptographic hash for each file during file scanning using configurable hash algorithm with options limited to secure algorithms with low collision rates (SHA-256, SHA-512, SHA3-256)
 - **FR-004**: System MUST store folder structure, file metadata (path, size, modification date), hash values, and hash algorithm type in database
 - **FR-004.1**: System MUST use dedicated database tables for folders and files (separate from existing agent/host/owner/policy tables) while maintaining foreign key relationships to existing RootFolder, Agent, and Host entities for organizational tracking
+- **FR-004.2**: System MUST record file access errors (e.g., permission denied) in database with error status and timestamp to prevent repeated failed access attempts in subsequent scans
 - **FR-005**: System MUST identify duplicate files by matching both file size AND hash value
 - **FR-006**: System MUST identify duplicate folders when all files within their entire subtrees match according to file duplicate logic
 - **FR-007**: System MUST detect partial folder duplicates when a subset of files match with minimum similarity threshold of 50%
@@ -116,12 +144,16 @@ A user wants to find folders that are mostly similar but not identical - where a
 - **FR-014.1**: System MUST persist scan state including current root folder, current subfolder path, and last processed file to enable reliable resumption after interruption
 - **FR-015**: System MUST allow users to configure hash algorithm selection in configuration file with options: SHA-256 (default), SHA-512, SHA3-256, applied globally to all scan operations
 - **FR-016**: System MUST store hash algorithm type with each file record to enable future algorithm migrations and maintain data integrity across configuration changes
+- **FR-017**: System MUST provide command to query duplicate files with configurable output format: human-readable table format (default) or JSON format (via --json flag) for scripting
+- **FR-017.1**: Table format output MUST group files by duplicate set, showing all files with identical size and hash together
+- **FR-017.2**: Duplicate query command MUST support optional --min-count filter to return only duplicate sets with at least N files (e.g., --min-count=3 shows only files with 3+ duplicates)
+- **FR-018**: System MUST provide command to query duplicate folders (exact matches) and partial folder duplicates with similarity percentage
 
 ### Key Entities
 
 - **Root Folder**: A top-level directory registered for monitoring, serves as the starting point for recursive scans, links to existing Host, Owner, Agent, and Purpose entities from infrastructure tables
 - **Folder**: A directory within the monitored tree, stored in dedicated folders table, has hierarchical relationship to parent folder and root, contains zero or more files and subfolders
-- **File**: A file within a monitored folder, stored in dedicated files table, has attributes: path, size, modification date, hash value, hash algorithm type, relationship to containing folder
+- **File**: A file within a monitored folder, stored in dedicated files table, has attributes: path, size, modification date, hash value, hash algorithm type, error status (for access failures), relationship to containing folder
 - **Duplicate File Set**: A group of 2+ files with identical size and hash values
 - **Duplicate Folder Set**: A group of 2+ folders where all files in their complete subtrees match
 - **Partial Duplicate Folder Pair**: Two folders with overlapping but not identical file sets, includes similarity percentage and difference details
@@ -134,7 +166,7 @@ A user wants to find folders that are mostly similar but not identical - where a
 - **NFR-003 Portability**: Scan operations must work identically on Windows, Linux, and macOS without platform-specific behavior
 - **NFR-004 Observability**: Provide clear progress indication with counts of folders/files processed and estimated time remaining, updated at configurable intervals (default 10 seconds) to avoid excessive console output
 - **NFR-005 Observability**: Log all scan operations including start/end times, files processed, errors encountered, and results summary
-- **NFR-006 Security**: Handle file access permissions gracefully - log permission errors without crashing and continue with remaining files
+- **NFR-006 Security**: Handle file access permissions gracefully - display permission errors to console during scan, mark affected files in database with error status to avoid repeated attempts in future scans, and continue with remaining files without crashing
 - **NFR-007 Maintainability**: Separate concerns: folder traversal logic, file hashing logic, duplicate detection logic, and database operations should be in distinct modules
 - **NFR-008 Graceful Shutdown**: Handle SIGINT/SIGTERM during scans - save partial progress and provide clean exit
 - **NFR-009 Upgradability**: Database schema for scan results should support versioning to enable future enhancements without data loss
@@ -148,6 +180,7 @@ A user wants to find folders that are mostly similar but not identical - where a
 - **SC-002**: System correctly identifies 100% of duplicate files in test scenarios with known duplicates (zero false positives or false negatives)
 - **SC-003**: System correctly identifies 100% of duplicate folders (identical subtrees) in test scenarios
 - **SC-004**: Users can distinguish between folder-only scan (fast structure mapping) and full scan (with hashing) and select appropriate mode for their needs
+- **SC-004.1**: Users can query duplicate results in both human-readable table format and JSON format for different use cases (interactive vs scripting)
 - **SC-005**: System detects at least 80% of meaningful partial folder duplicates in test scenarios with similarity threshold of 50% or higher
 - **SC-006**: Scan operations provide visible progress indication allowing users to monitor operation without anxiety about system hang
 - **SC-007**: Interrupted scans can be resumed from last checkpoint without corrupting database or losing data integrity, avoiding need to reprocess already-scanned files
@@ -166,6 +199,8 @@ A user wants to find folders that are mostly similar but not identical - where a
 - **A-009**: System runs on filesystem that provides reliable file size and modification timestamp metadata
 - **A-010**: Checkpoint granularity for scan resumption is at the folder level - entire folder is reprocessed if interruption occurs mid-folder to ensure consistency
 - **A-011**: Dedicated scan tables (folders, files) remain loosely coupled to infrastructure tables - scan operations should function independently even if agent/host data is minimal or absent
+- **A-012**: All paths stored in database are absolute paths with platform-appropriate separators (forward slash on Unix, backslash on Windows) to ensure consistency and avoid ambiguity
+- **A-013**: Human-readable table format is default output for duplicate queries, assuming primary use case is interactive terminal usage; JSON format available via explicit flag for automation scenarios
 
 ## Dependencies
 
@@ -181,3 +216,84 @@ A user wants to find folders that are mostly similar but not identical - where a
 - **OS-004**: Network or cloud storage scanning - assumes local filesystem access
 - **OS-005**: Deduplication or storage optimization - identification only, no storage changes
 - **OS-006**: Graphical user interface for scan operations - CLI commands only
+
+## Implementation Gaps (Code vs Spec Analysis)
+
+### Critical Missing Components
+
+**Database Schema (Priority: Must Have)**
+- No database tables exist for files with columns: id, path, size, mtime, hash_value, hash_algorithm, error_status, folder_id, root_folder_id
+- No database tables exist for folders with columns: id, path, parent_folder_id, root_folder_id, scan_status
+- No scan_state table for checkpoint tracking: root_folder_id, current_folder_path, last_processed_file, scan_mode, started_at
+- Existing Folder entity in entities/files.go lacks required fields (parent_folder_id, full path, scan timestamp)
+- Existing filemsg struct has hash field but no hash_algorithm or error_status fields
+
+**Scanning Logic (Priority: Must Have)**
+- No folder traversal implementation - cmd/scanFolders.go is stub only
+- No file hashing implementation - no pkg/scanner or pkg/hash module exists
+- No hash algorithm configuration reading from config file
+- No progress reporting mechanism with configurable time intervals
+- No checkpoint save/restore logic for scan interruption handling
+- No permission error handling with database marking
+
+**Duplicate Detection (Priority: Must Have)**
+- No logic to identify duplicate files by matching size AND hash
+- No logic to identify duplicate folders (identical subtrees)
+- No logic to detect partial folder duplicates with similarity calculation
+- cmd/getDuplicates.go is stub with no implementation
+
+**CLI Command Implementation (Priority: Must Have)**
+- cmd/scanAll.go: No root folder path argument parsing, no call to scan logic
+- cmd/scanFolders.go: No implementation, needs folder-only traversal
+- cmd/scanFiles.go: No implementation, needs file-only hashing
+- cmd/getDuplicates.go: No output formatting (table/JSON), no --min-count filter
+- cmd/addRoot.go: No validation for path existence, no absolute path conversion, no registration prompt
+
+**Configuration (Priority: Must Have)**
+- No hash algorithm config setting in viper defaults (setDefaults in root.go)
+- No progress interval config setting
+- No configuration documentation for scan settings
+
+### Moderate Gaps
+
+**Path Handling (Priority: Should Have)**
+- No absolute path conversion logic for relative paths
+- No path validation and normalization across platforms
+- No handling of special characters or long paths
+
+**Error Handling (Priority: Should Have)**
+- No console warning output for permission errors during scan
+- No graceful handling of unreadable files with continuation
+- No validation that provided root path exists on filesystem
+
+**Data Integrity (Priority: Should Have)**
+- No foreign key relationships defined between new scan tables and existing infrastructure tables
+- No database migration/versioning strategy for schema changes
+
+**User Experience (Priority: Nice to Have)**
+- No interactive confirmation prompts for unregistered root folders
+- No progress estimation (time remaining) in progress output
+- No summary statistics at end of scan (files processed, duplicates found)
+
+### Existing Code Assets (Can Leverage)
+
+**Infrastructure (Already Exists)**
+- Database connection via pkg/datastore/datastore.go (SQLite with WAL mode)
+- Agent table creation pattern in pkg/datastore/agent.go (can use as template)
+- Entity models in pkg/entities/files.go (Host, Owner, Agent, RootFolder, Folder)
+- Configuration via Viper in cmd/root.go with defaults
+- Cobra CLI command structure in cmd/ directory
+- API infrastructure in pkg/api/ (may be useful for future extensions)
+
+**Recommendations for Planning Phase**
+
+1. **Start with database schema creation** - Foundation for everything else
+2. **Implement basic folder traversal** - Core scanning capability  
+3. **Add file hashing with configurable algorithm** - Duplicate detection prerequisite
+4. **Build duplicate detection queries** - Deliver user value
+5. **Add CLI argument parsing and validation** - User interface
+6. **Implement progress reporting** - User feedback
+7. **Add checkpoint/resume logic** - Reliability
+8. **Build output formatting (table/JSON)** - Result presentation
+
+All critical gaps are now documented and ready for task decomposition in planning phase.
