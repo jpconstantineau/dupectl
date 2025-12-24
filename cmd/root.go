@@ -31,6 +31,7 @@ import (
 )
 
 var cfgFile string
+var rootYes bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -72,6 +73,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.dupectl.yaml)")
+	rootCmd.PersistentFlags().BoolVarP(&rootYes, "yes", "y", false, "automatic yes to prompts; assume 'yes' as answer to all prompts and run non-interactively")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

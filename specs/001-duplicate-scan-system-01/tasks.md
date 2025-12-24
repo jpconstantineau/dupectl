@@ -23,11 +23,11 @@ description: "Task list for Duplicate Scan System implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create Go project structure with cmd/, pkg/, internal/, tests/ directories per plan.md
-- [ ] T002 Verify Go 1.21+ installation and existing dependencies (cobra, viper, sqlite)
-- [ ] T003 [P] Install golang.org/x/crypto/sha3 dependency for SHA3-256 hash support
-- [ ] T004 [P] Setup testing framework structure in tests/fixtures/, tests/unit/, tests/integration/, tests/e2e/
-- [ ] T005 [P] Create test fixtures directory structure for duplicates, folders, partial, permissions scenarios
+- [X] T001 Create Go project structure with cmd/, pkg/, internal/, tests/ directories per plan.md
+- [X] T002 Verify Go 1.21+ installation and existing dependencies (cobra, viper, sqlite)
+- [X] T003 [P] Install golang.org/x/crypto/sha3 dependency for SHA3-256 hash support
+- [X] T004 [P] Setup testing framework structure in tests/fixtures/, tests/unit/, tests/integration/, tests/e2e/
+- [X] T005 [P] Create test fixtures directory structure for duplicates, folders, partial, permissions scenarios
 - [ ] T006 [P] Configure golangci-lint for Go code quality checks per constitution
 
 ---
@@ -40,40 +40,40 @@ description: "Task list for Duplicate Scan System implementation"
 
 ### Constitution Compliance Infrastructure
 
-- [ ] T010 [P] Implement structured logging utilities in pkg/logger/logger.go with stderr output and log levels (Observability)
-- [ ] T011 [P] Implement signal handling for SIGINT/SIGTERM with 5-second timeout in pkg/checkpoint/signals.go (Graceful Shutdown)
-- [ ] T012 [P] Create cross-platform path utilities in pkg/pathutil/pathutil.go using filepath.Join() (Portability)
-- [ ] T013 [P] Implement database migration framework in pkg/datastore/migrations.go with schema versioning (Upgradability)
-- [ ] T014 [P] Create progress indication utilities in pkg/scanner/progress.go with braille spinner and counters (UX Consistency)
-- [ ] T015 [P] Define structured error types in pkg/errors/errors.go with actionable messages (UX Consistency)
-- [ ] T016 [P] Setup configuration management in internal/config/config.go for Viper integration (12-Factor CLI)
+- [X] T010 [P] Implement structured logging utilities in pkg/logger/logger.go with stderr output and log levels (Observability)
+- [X] T011 [P] Implement signal handling for SIGINT/SIGTERM with 5-second timeout in pkg/checkpoint/signals.go (Graceful Shutdown)
+- [X] T012 [P] Create cross-platform path utilities in pkg/pathutil/pathutil.go using filepath.Join() (Portability)
+- [X] T013 [P] Implement database migration framework in pkg/datastore/migrations.go with schema versioning (Upgradability)
+- [X] T014 [P] Create progress indication utilities in pkg/scanner/progress.go with braille spinner and counters (UX Consistency)
+- [X] T015 [P] Define structured error types in pkg/errors/errors.go with actionable messages (UX Consistency)
+- [X] T016 [P] Setup configuration management in internal/config/config.go for Viper integration (12-Factor CLI)
 
 ### Database Schema & Infrastructure
 
-- [ ] T020 Create files table schema in pkg/datastore/files.go with CREATE TABLE and indexes per data-model.md
-- [ ] T021 Create folders table schema in pkg/datastore/folders.go with self-referential FK per data-model.md
-- [ ] T022 Create scan_state table schema in pkg/datastore/scanstate.go with unique active constraint per data-model.md
-- [ ] T023 Extend root_folders table with ALTER TABLE statements in pkg/datastore/rootfolders.go adding traverse_links, last_scan_date, folder_count, file_count, total_size
-- [ ] T024 Implement PRAGMA foreign_keys = ON enforcement in pkg/datastore/datastore.go initialization
-- [ ] T025 Configure SQLite WAL mode and connection pooling in pkg/datastore/datastore.go per research.md
-- [ ] T026 Create database initialization function to run all table creation migrations in pkg/datastore/datastore.go
+- [X] T020 Create files table schema in pkg/datastore/files.go with CREATE TABLE and indexes per data-model.md
+- [X] T021 Create folders table schema in pkg/datastore/folders.go with self-referential FK per data-model.md
+- [X] T022 Create scan_state table schema in pkg/datastore/scanstate.go with unique active constraint per data-model.md
+- [X] T023 Extend root_folders table with ALTER TABLE statements in pkg/datastore/rootfolders.go adding traverse_links, last_scan_date, folder_count, file_count, total_size
+- [X] T024 Implement PRAGMA foreign_keys = ON enforcement in pkg/datastore/datastore.go initialization
+- [X] T025 Configure SQLite WAL mode and connection pooling in pkg/datastore/datastore.go per research.md
+- [X] T026 Create database initialization function to run all table creation migrations in pkg/datastore/datastore.go
 
 ### Entity Models
 
-- [ ] T030 [P] Create File entity struct in pkg/entities/files.go with all fields from data-model.md (id, path, size, mtime, hash_value, hash_algorithm, error_status, timestamps, removed, folder_id, root_folder_id)
-- [ ] T031 [P] Create Folder entity struct in pkg/entities/folders.go with hierarchy support (id, path, parent_folder_id, root_folder_id, error_status, timestamps, removed)
-- [ ] T032 [P] Create ScanState entity struct in pkg/entities/scanstate.go for checkpoint tracking (id, root_folder_id, scan_mode, current_folder_path, last_processed_file, timestamps, completed)
+- [X] T030 [P] Create File entity struct in pkg/entities/files.go with all fields from data-model.md (id, path, size, mtime, hash_value, hash_algorithm, error_status, timestamps, removed, folder_id, root_folder_id)
+- [X] T031 [P] Create Folder entity struct in pkg/entities/folders.go with hierarchy support (id, path, parent_folder_id, root_folder_id, error_status, timestamps, removed)
+- [X] T032 [P] Create ScanState entity struct in pkg/entities/scanstate.go for checkpoint tracking (id, root_folder_id, scan_mode, current_folder_path, last_processed_file, timestamps, completed)
 
 ### Core Services Infrastructure
 
-- [ ] T040 [P] Implement hash algorithm interface in pkg/hash/hasher.go with Hash(filePath) method
-- [ ] T041 [P] Implement SHA-256 hasher in pkg/hash/sha256.go using crypto/sha256
-- [ ] T042 [P] Implement SHA-512 hasher in pkg/hash/sha512.go using crypto/sha512 (default)
-- [ ] T043 [P] Implement SHA3-256 hasher in pkg/hash/sha3.go using golang.org/x/crypto/sha3
-- [ ] T044 [P] Create hash factory in pkg/hash/factory.go to select algorithm from config
-- [ ] T045 Implement worker pool generic interface in internal/worker/pool.go with WorkItem interface, Submit(), Stop(), Wait() per worker-pools.md
-- [ ] T046 [P] Implement worker pool metrics tracking in internal/worker/metrics.go (ItemsProcessed, ItemsFailed, ItemsQueued, WorkersActive)
-- [ ] T047 [P] Implement checkpoint save/restore logic in pkg/checkpoint/checkpoint.go for scan state persistence
+- [X] T040 [P] Implement hash algorithm interface in pkg/hash/hasher.go with Hash(filePath) method
+- [X] T041 [P] Implement SHA-256 hasher in pkg/hash/sha256.go using crypto/sha256
+- [X] T042 [P] Implement SHA-512 hasher in pkg/hash/sha512.go using crypto/sha512 (default)
+- [X] T043 [P] Implement SHA3-256 hasher in pkg/hash/sha3.go using golang.org/x/crypto/sha3
+- [X] T044 [P] Create hash factory in pkg/hash/factory.go to select algorithm from config
+- [X] T045 Implement worker pool generic interface in internal/worker/pool.go with WorkItem interface, Submit(), Stop(), Wait() per worker-pools.md
+- [X] T046 [P] Implement worker pool metrics tracking in internal/worker/metrics.go (ItemsProcessed, ItemsFailed, ItemsQueued, WorkersActive)
+- [X] T047 [P] Implement checkpoint save/restore logic in pkg/checkpoint/checkpoint.go for scan state persistence
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -87,23 +87,23 @@ description: "Task list for Duplicate Scan System implementation"
 
 ### Implementation for User Story 1
 
-- [ ] T050 [P] [US1] Implement folder traversal logic in pkg/scanner/traverser.go with recursive directory walking
-- [ ] T051 [P] [US1] Create FolderTraversalWorkItem in internal/worker/traversal.go implementing WorkItem interface per worker-pools.md
-- [ ] T052 [P] [US1] Implement folder registration in pkg/datastore/folders.go (INSERT with UNIQUE constraint handling, UPDATE last_scanned_at)
-- [ ] T053 [P] [US1] Implement file registration in pkg/datastore/files.go (INSERT with batch transactions, UNIQUE constraint handling)
-- [ ] T054 [P] [US1] Create FileHashingWorkItem in internal/worker/hashing.go implementing WorkItem interface per worker-pools.md
-- [ ] T055 [US1] Implement main scanner orchestrator in pkg/scanner/scanner.go coordinating traversal and hashing worker pools
-- [ ] T056 [US1] Implement permission error handling in pkg/scanner/errors.go setting error_status in database
+- [X] T050 [P] [US1] Implement folder traversal logic in pkg/scanner/traverser.go with recursive directory walking
+- [X] T051 [P] [US1] Create FolderTraversalWorkItem in internal/worker/traversal.go implementing WorkItem interface per worker-pools.md
+- [X] T052 [P] [US1] Implement folder registration in pkg/datastore/folders.go (INSERT with UNIQUE constraint handling, UPDATE last_scanned_at)
+- [X] T053 [P] [US1] Implement file registration in pkg/datastore/files.go (INSERT with batch transactions, UNIQUE constraint handling)
+- [X] T054 [P] [US1] Create FileHashingWorkItem in internal/worker/hashing.go implementing WorkItem interface per worker-pools.md
+- [X] T055 [US1] Implement main scanner orchestrator in pkg/scanner/scanner.go coordinating traversal and hashing worker pools
+- [X] T056 [US1] Implement permission error handling in pkg/scanner/errors.go setting error_status in database
 - [ ] T057 [US1] Implement removed flag cascading logic in pkg/datastore/files.go for files no longer present
-- [ ] T058 [US1] Implement checkpoint save triggers in pkg/scanner/scanner.go (periodic saves every folder completion)
-- [ ] T059 [US1] Implement checkpoint auto-resume logic in pkg/scanner/scanner.go detecting incomplete scans
-- [ ] T060 [US1] Implement progress display in pkg/scanner/progress.go with braille spinner, folder/file counts, elapsed time per cli-commands.md
-- [ ] T061 [US1] Create scan all CLI command in cmd/scanAll.go with root-folder-path argument and --progress, --restart flags per cli-commands.md
-- [ ] T062 [US1] Implement root folder registration prompt in cmd/scanAll.go for unregistered paths
-- [ ] T063 [US1] Implement absolute path conversion in cmd/scanAll.go using pkg/pathutil
-- [ ] T064 [US1] Add scan summary output in cmd/scanAll.go showing folders/files scanned, duplicates found
+- [X] T058 [US1] Implement checkpoint save triggers in pkg/scanner/scanner.go (periodic saves every folder completion)
+- [X] T059 [US1] Implement checkpoint auto-resume logic in pkg/scanner/scanner.go detecting incomplete scans
+- [X] T060 [US1] Implement progress display in pkg/scanner/progress.go with braille spinner, folder/file counts, elapsed time per cli-commands.md
+- [X] T061 [US1] Create scan all CLI command in cmd/scanAll.go with root-folder-path argument and --progress, --restart flags per cli-commands.md
+- [X] T062 [US1] Implement root folder registration prompt in cmd/scanAll.go for unregistered paths
+- [X] T063 [US1] Implement absolute path conversion in cmd/scanAll.go using pkg/pathutil
+- [X] T064 [US1] Add scan summary output in cmd/scanAll.go showing folders/files scanned, duplicates found
 - [ ] T065 [US1] Implement root folder statistics update in pkg/datastore/rootfolders.go (folder_count, file_count, total_size, last_scan_date)
-- [ ] T066 [US1] Add signal handler integration in cmd/scanAll.go to save checkpoint on SIGINT/SIGTERM
+- [X] T066 [US1] Add signal handler integration in cmd/scanAll.go to save checkpoint on SIGINT/SIGTERM
 - [ ] T067 [US1] Implement removed flag reset in pkg/scanner/scanner.go when file rediscovered (FR-036)
 
 **Checkpoint**: User Story 1 complete - full scan capability with checkpoint/resume functional
@@ -174,12 +174,12 @@ description: "Task list for Duplicate Scan System implementation"
 
 ### Implementation for User Story 5
 
-- [ ] T100 [P] [US5] Implement duplicate file query in pkg/datastore/queries.go using idx_files_hash index per data-model.md
-- [ ] T101 [P] [US5] Implement duplicate file detector in pkg/duplicate/detector.go grouping files by size+hash
-- [ ] T102 [P] [US5] Implement table format renderer in pkg/duplicate/formatter.go with duplicate sets per cli-commands.md
-- [ ] T103 [P] [US5] Implement JSON format renderer in pkg/duplicate/formatter.go with structured output per cli-commands.md
-- [ ] T104 [US5] Create get duplicates CLI command in cmd/getDuplicates.go with --json and --min-count flags per cli-commands.md
-- [ ] T105 [US5] Add min-count filtering in pkg/duplicate/detector.go to filter by duplicate set size
+- [X] T100 [P] [US5] Implement duplicate file query in pkg/datastore/queries.go using idx_files_hash index per data-model.md
+- [X] T101 [P] [US5] Implement duplicate file detector in pkg/duplicate/detector.go grouping files by size+hash
+- [X] T102 [P] [US5] Implement table format renderer in pkg/duplicate/formatter.go with duplicate sets per cli-commands.md
+- [X] T103 [P] [US5] Implement JSON format renderer in pkg/duplicate/formatter.go with structured output per cli-commands.md
+- [X] T104 [US5] Create get duplicates CLI command in cmd/getDuplicates.go with --json and --min-count flags per cli-commands.md
+- [X] T105 [US5] Add min-count filtering in pkg/duplicate/detector.go to filter by duplicate set size
 - [ ] T106 [US5] Implement duplicate folder query in pkg/datastore/queries.go finding folders with identical subtrees
 - [ ] T107 [US5] Add duplicate folder detection in pkg/duplicate/detector.go comparing complete folder hash sets
 

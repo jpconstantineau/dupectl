@@ -41,4 +41,17 @@ func connectSqliteDB(dbPath string) (*sql.DB, error) {
 
 func InitAllTables() {
 	initAgentTable()
+
+	// Run scan table migrations
+	db, err := startDb()
+	if err != nil {
+		fmt.Printf("Failed to initialize database: %v\n", err)
+		return
+	}
+	defer db.Close()
+
+	err = RunMigrations(db)
+	if err != nil {
+		fmt.Printf("Failed to run migrations: %v\n", err)
+	}
 }
