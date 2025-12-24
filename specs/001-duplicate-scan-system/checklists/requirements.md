@@ -32,5 +32,37 @@
 ## Notes
 
 - All checklist items passed validation
-- Hash algorithm clarification resolved: configurable with SHA-256, SHA-512, SHA3-256 options
-- Specification is ready for `/speckit.clarify` or `/speckit.plan` phase
+- Hash algorithm clarification resolved: configurable with SHA-512 (default), SHA-256, SHA3-256 options
+- SHA-512 chosen as default to minimize collision risk with 512-bit output
+- Specification updated on December 24, 2025 with additional requirements:
+  - Default resume behavior with --restart option for fresh scans
+  - --progress option with braille spinner, folder/file counts, and elapsed time
+  - First scanned and last scanned timestamps (UTC) for file lifecycle tracking
+  - Removed flag for detecting file movements between locations
+  - Command-line option to remove path and delete scan data
+  - Testing requirements for all command-line options
+  - Documentation requirements for CLI help text
+  - Test fixtures (folders and files) to be included in repository for automated testing
+  - Test fixtures organized under tests/fixtures/ or testdata/ with known characteristics
+  - Test data requirements: exact duplicates, duplicate folders, partial duplicates, edge cases
+  - Configuration option validation at startup with clear error messages
+  - Automated tests required for all configuration options (defaults, valid/invalid values, runtime behavior)
+  - Root folder management: multiple roots support, traverse_links configuration option
+  - Get root command with table format showing: path, folder count, file count, total size, last scan date
+  - Root folder summary statistics calculated from database
+  - Folder removal tracking: folders flagged as removed when no longer on filesystem
+  - Cascading removed flag: when folder removed, all contained files and subfolders automatically flagged
+  - Folder entity includes: path, timestamps, removed flag
+  - Checkpoint saved to database before shutdown (SIGINT/SIGTERM handling)
+  - Automatic resume from checkpoint on application restart (default behavior)
+  - Support for containerized deployments with checkpoint persistence across container restarts
+  - Checkpoint locking to prevent concurrent scan processes
+  - Periodic checkpoint saves during scan + immediate save on shutdown
+  - Duplicate detection clarified: requires BOTH size AND hash match
+  - Size match + hash mismatch = different files (not duplicates)
+  - Hash match + size mismatch = different files (not duplicates, theoretically impossible)
+  - Filenames and paths not used in duplicate detection - content-based only
+  - Permission-denied files and folders saved in database with error status flag
+  - Folders with permission issues recorded but contents not scanned
+  - Error status tracking for both files and folders to prevent repeated access attempts
+- Specification remains ready for `/speckit.clarify` or `/speckit.plan` phase
