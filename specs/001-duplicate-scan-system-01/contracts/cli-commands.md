@@ -19,14 +19,16 @@ All commands follow Cobra/Viper pattern with consistent verb-noun structure (Con
 **Description**: DupeCTL - Duplicate file and folder detection system
 
 **Global Flags**:
-- `--config string` - Config file path (default: `~/.dupectl.yaml`)
+- `--config string` - Config file path (default: `~/.dupectl.yaml` on Unix/Linux/macOS, `%USERPROFILE%\.dupectl.yaml` on Windows)
+- `--yes` or `-y` - Non-interactive mode: skip all confirmation prompts (auto-accept with defaults)
 - `--verbose` or `-v` - Enable verbose logging
 - `--help` or `-h` - Display help information
 
 **Exit Codes**:
-- `0` - Success
-- `1` - General error
-- `2` - Usage error (invalid arguments/flags)
+- `0` - Success (operation completed without errors)
+- `1` - User error (invalid path, file not found, root not registered, permission denied)
+- `2` - System error (database failure, I/O error, configuration invalid)
+- `130` - Interrupted (SIGINT/SIGTERM received, checkpoint saved, clean shutdown)
 
 ## Scan Commands
 
@@ -478,7 +480,7 @@ Related Commands:
 3. Wait for in-flight operations to complete (5 second timeout)
 4. Save checkpoint to database
 5. Display message: "Checkpoint saved. Run 'dupectl scan all <path>' to resume."
-6. Exit with code 0
+6. Exit with code 130
 
 **Example**:
 ```text
@@ -489,6 +491,173 @@ Checkpoint saved at folder: /home/user/documents/subfolder/path
 Run 'dupectl scan all /home/user/documents' to resume.
 ```
 
+## Lifecycle Management Commands
+
+### purge
+
+**Command**: `dupectl purge [files|folders|all] <root-folder-path> [flags]`
+
+**Description**: Permanently delete removed entities from database to free storage
+
+**Arguments**:
+- `[files|folders|all]` Entity type to purge: `files`, `folders`, or `all` (required) 
+- `<root-folder-path>` (required) - Absolute or relative path to root folder
+
+
+**Optional Flags**:
+- `--before string` - Only purge entities removed before date (format: YYYY-MM-DD)
+- `--help` or `-h` - Display command help
+
+**Behavior**:
+1. Validate root folder path is registered
+2. Query count of removed entities matching criteria
+3. If --yes flag not set, prompt: "Permanently delete {count} {type}? This cannot be undone. (y/n)"
+4. If confirmed, DELETE FROM database WHERE removed=1 AND criteria match
+5. Display summary: "Purged {count} {type} from database"
+
+**Output Format**:
+```text
+Purging removed files from: /path/to/root
+Found 1,234 removed files
+Permanently delete 1,234 files? This cannot be undone. (y/n) y
+Purged 1,234 files from database
+Database size reduced by 15.2 MB
+```
+
+**Example Usage**:
+```bash
+dupectl purge files /path/to/root 
+dupectl purge all /path/to/root  --before=2024-01-01
+dupectl purge folder /path/to/root  --yes
+```
+
+### refresh
+
+**Command**: `dupectl refresh all <root-folder-path> [flags]`
+
+**Description**: Recalculate root folder statistics from database without full scan
+
+**Arguments**:
+- `<root-folder-path>` (required) - Absolute or relative path to root folder
+
+**Flags**:
+- `--help` or `-h` - Display command help
+
+**Behavior**:
+1. Validate root folder path is registered
+2. Query database: COUNT folders WHERE removed=0, COUNT files WHERE removed=0, SUM(size) WHERE removed=0
+3. UPDATE root_folders SET folder_count, file_count, total_size, last_scan_date=NOW()
+4. Display updated statistics
+
+**Output Format**:
+```text
+Refreshing statistics for: /path/to/root
+Folder count: 1,543
+File count: 12,847
+Total size: 5.2 GB
+Last updated: 2025-12-24 10:30:45 UTC
+```
+
+**Example Usage**:
+```bash
+dupectl refresh all /path/to/root
+```
+
+### verify
+
+**Command**: `dupectl verify all <root-folder-path> [flags]`
+
+**Description**: Check database consistency and detect data integrity issues
+
+**Arguments**:
+- `<root-folder-path>` (required) - Absolute or relative path to root folder
+
+**Flags**:
+- `--repair` - Attempt automatic fixes for safe issues
+- `--json` - Output results in JSON format
+- `--help` or `-h` - Display command help
+
+**Behavior**:
+1. Validate root folder path is registered
+2. Run consistency checks:
+   - Foreign key integrity (orphaned files/folders)
+   - Timestamp validity (future dates, inconsistent order)
+   - Removed flag cascade correctness
+   - Statistics accuracy
+   - Hash algorithm consistency
+3. Report issues found with severity (WARNING, ERROR)
+4. If --repair specified, fix safe issues automatically
+5. Display summary: checks run, issues found, issues fixed
+
+**Output Format** (table):
+```text
+Verifying database consistency for: /path/to/root
+
+Check Results:
+═════════════
+✓ Foreign key integrity: PASS
+✓ Timestamp validity: PASS
+✗ Removed flag cascade: 3 inconsistencies found
+  - Folder /path/removed but child file not marked removed
+  - Folder /path2/removed but child file not marked removed
+  - Folder /path3/removed but child file not marked removed
+⚠ Statistics accuracy: WARNING - counts differ from database
+  - Expected: 1,543 folders, 12,847 files
+  - Actual in DB: 1,540 folders, 12,844 files
+
+Summary: 4 checks run, 2 issues found (1 ERROR, 1 WARNING)
+Run with --repair to attempt automatic fixes.
+```
+
+**Output Format** (with --repair):
+```text
+Verifying database consistency for: /path/to/root
+Running consistency checks...
+✗ Removed flag cascade: 3 inconsistencies found
+  Fixing: Cascading removed flag to 3 orphaned files... ✓
+⚠ Statistics accuracy: WARNING
+  Fixing: Recalculating root folder statistics... ✓
+
+Summary: 4 checks run, 2 issues found, 2 issues fixed
+```
+
+**Output Format** (JSON):
+```json
+{
+  "root_path": "/path/to/root",
+  "checks_run": 4,
+  "issues_found": 2,
+  "issues_fixed": 0,
+  "checks": [
+    {
+      "name": "foreign_key_integrity",
+      "status": "pass",
+      "issues": []
+    },
+    {
+      "name": "removed_flag_cascade",
+      "status": "error",
+      "issues": [
+        {
+          "description": "Folder /path/removed but child file not marked removed",
+          "severity": "error"
+        }
+      ]
+    }
+  ],
+  "scan_timestamp": "2025-12-24T10:30:45Z"
+}
+```
+
+**Example Usage**:
+```bash
+dupectl verify all /path/to/root
+dupectl verify all /path/to/root --repair
+dupectl verify all /path/to/root --json
+```
+
+## Signal Handling
+
 ## Exit Codes
 
 Consistent across all commands (Constitution IV: UX Consistency):
@@ -496,8 +665,9 @@ Consistent across all commands (Constitution IV: UX Consistency):
 | Code | Meaning | Examples |
 |------|---------|----------|
 | 0 | Success | Command completed successfully, user cancelled confirmation |
-| 1 | General error | File not found, permission denied, database error |
-| 2 | Usage error | Invalid arguments, invalid flag values, missing required argument |
+| 1 | User error | Invalid path, file not found, root not registered, permission denied |
+| 2 | System error | Database failure, I/O error, configuration invalid |
+| 130 | Interrupted | SIGINT/SIGTERM received, checkpoint saved, graceful shutdown |
 
 ## Color Coding
 
@@ -518,7 +688,9 @@ Register root folder now? (y/n)     [YELLOW]
 
 ## Configuration File
 
-**File**: `~/.dupectl.yaml` (or path specified by `--config`)
+**File**: `~/.dupectl.yaml` (Unix/Linux/macOS) or `%USERPROFILE%\.dupectl.yaml` (Windows)  
+**Override**: Via `--config` flag or `DUPECTL_CONFIG` environment variable  
+**Reload**: Configuration changes require application restart
 
 **Scan Configuration**:
 ```yaml
@@ -527,6 +699,11 @@ scan:
   worker_count: 8                 # Number of parallel workers (default: CPU cores)
   progress_interval: 10           # Seconds between progress updates (default: 10)
   checkpoint_interval: 60         # Seconds between periodic checkpoints (default: 60)
+
+output:
+  table_library: olekukonko/tablewriter  # Go library for ASCII table rendering
+  table_style: ascii              # ASCII characters (cross-platform compatible)
+  path_truncate_length: 60        # Truncate paths exceeding this length with ellipsis
 ```
 
 **Validation**:
@@ -534,6 +711,7 @@ scan:
 - `worker_count` must be >= 1 and <= 100
 - `progress_interval` must be >= 1
 - `checkpoint_interval` must be >= 10
+- `path_truncate_length` must be >= 20
 
 ## References
 

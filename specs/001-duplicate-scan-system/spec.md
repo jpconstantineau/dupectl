@@ -22,26 +22,49 @@
 
 ### Session 2025-12-24 (Checklist Review)
 
-**CRITICAL LIFECYCLE GAPS - Require Resolution Before Implementation**
+**CRITICAL LIFECYCLE GAPS - Resolved**
 
-- Q: How can users rehash files that have NULL hash_value (failed initial hash, permission fixed later)? → A: NEEDS CLARIFICATION - Propose: leverage `dupectl scan files <root-path>` command to recalculate hashes for files with NULL hash_value or matching specific criteria (error status, hash algorithm mismatch)
-- Q: How can users permanently delete removed entities (files/folders flagged removed=1) from database? → A: NEEDS CLARIFICATION - Propose: Add `dupectl purge files <root-path>` `dupectl purge folders <root-path>` and `dupectl purge all <root-path>` command with optional --before=date filter to cleanup old removed records and free storage
-- Q: How can users manually clear stale scan checkpoints (abandoned scans with old updated_at timestamps)? → A: NEEDS CLARIFICATION - Existing --restart flag clears checkpoint for new scan, but propose: Add threshold detection (e.g., checkpoint older than 24 hours) with automatic prompt or `dupectl delete checkpoint <root-path>` command
-- Q: How can users retry files/folders with error_status after fixing permissions? → A: NEEDS CLARIFICATION - Propose: leverage `dupectl scan files <root-path>` command to reset error_status to NULL, or add --retry-errors flag to scan commands to force reprocessing of error entries
-- Q: How are root folder statistics (folder_count, file_count, total_size) recalculated after manual deletes or removed flag cascades? → A: NEEDS CLARIFICATION - Propose: Automatic recalculation on scan completion (already planned) + manual `dupectl refresh all <root-path>` command for on-demand updates
-- Q: What consistency check operations are available to detect orphaned records, invalid foreign keys, or data corruption? → A: NEEDS CLARIFICATION - Propose: Add `dupectl verify all <root-path>` command to check FK integrity, detect orphans, identify inconsistent timestamps, validate removed flag cascades, with optional --repair flag
-- Q: How does system handle files that reappear at same path after being marked removed=1? → A: NEEDS CLARIFICATION - Propose: During scan, if file exists and removed=1, automatically set removed=0 and update last_scanned_at (restore file to active state)
-- Q: What is the strategy for migrating to a different hash algorithm (rehash all files with new algorithm)? → A: NEEDS CLARIFICATION - leverage scan command to recalculate hashes when configuration is detected to have changed, overwriting old hash_value and updating hash type
+- Q: How can users rehash files that have NULL hash_value (failed initial hash, permission fixed later)? → A: **RESOLVED** - The `dupectl scan files <root-path>` command automatically recalculates hashes for files with NULL hash_value or error_status set, treating them as unhashed files requiring processing
+- Q: How can users permanently delete removed entities (files/folders flagged removed=1) from database? → A: **RESOLVED** - Add `dupectl purge [files|folders|all] <root-path>` command with positional type argument (files, folders, or all) and optional --before=date filter to permanently delete removed entities from database and free storage (e.g., `dupectl purge files /path/to/root --before=2025-01-01`)
+- Q: How can users manually clear stale scan checkpoints (abandoned scans with old updated_at timestamps)? → A: **RESOLVED** - The existing --restart flag provides manual control. Additionally, when checkpoint is older than 24 hours, system displays warning: "Checkpoint is stale (last updated {timestamp}). Resume anyway? (y/n/restart)" allowing user to resume, cancel, or restart. No separate delete checkpoint command needed.
+- Q: How can users retry files/folders with error_status after fixing permissions? → A: **RESOLVED** - The `dupectl scan files <root-path>` command automatically retries files/folders with error_status set, resetting error_status to NULL before attempting access. Files/folders with persistent errors remain marked with updated error_status and timestamp. No separate retry flag needed.
+- Q: How are root folder statistics (folder_count, file_count, total_size) recalculated after manual deletes or removed flag cascades? → A: **RESOLVED** - Statistics automatically recalculate on scan completion. For manual updates, add `dupectl refresh all <root-path>` command to recalculate and update root folder statistics from current database state without performing a full scan.
+- Q: What consistency check operations are available to detect orphaned records, invalid foreign keys, or data corruption? → A: **RESOLVED** - Add `dupectl verify all <root-path>` command that checks: (1) foreign key integrity, (2) orphaned files/folders, (3) timestamp consistency, (4) removed flag cascade validity, (5) statistics accuracy. Reports issues found. Optional --repair flag attempts automatic fixes where safe (re-cascade removed flags, recalculate statistics). Outputs report in table format or --json.
+- Q: How does system handle files that reappear at same path after being marked removed=1? → A: **RESOLVED** - During scan, when file exists at path with removed=1, system automatically sets removed=0, updates last_scanned_at timestamp, and logs info message: "Restored file: {path} (previously removed)". This enables tracking of file movements and restorations.
+- Q: What is the strategy for migrating to a different hash algorithm (rehash all files with new algorithm)? → A: **RESOLVED** - When hash algorithm in config differs from stored hash_algorithm for a file, the next `dupectl scan files <root-path>` recalculates hash with new algorithm, updates hash_value and hash_algorithm columns, and logs migration: "Rehashed {count} files from {old_algo} to {new_algo}". Users run scan files after config change to migrate.
 
-**PRODUCTION READINESS GAPS**
+**PRODUCTION READINESS GAPS - Resolved**
 
-- Q: What exit codes should CLI commands return (success, user error, system error, cancelled)? → A: NEEDS CLARIFICATION - Propose: Exit code 0 (success), 1 (user error: invalid args, not found), 2 (system error: database, filesystem, permission), 130 (SIGINT/user cancelled)
-- Q: What CHECK constraints should enforce data integrity (hash_algorithm values, scan_mode values, boolean flags, non-negative counts)? → A: NEEDS CLARIFICATION - Propose: Add SQL CHECK constraints for hash_algorithm IN ('sha256', 'sha512', 'sha3-256'), scan_mode IN ('all', 'folders', 'files'), removed/completed IN (0,1), size/counts >= 0
-- Q: What SQLite PRAGMA settings are required (foreign_keys, synchronous, journal_mode)? → A: NEEDS CLARIFICATION - Propose: `PRAGMA foreign_keys = ON` (critical for CASCADE), `PRAGMA journal_mode = WAL` (already planned), `PRAGMA synchronous = FULL` (safety over speed), document in quickstart.md
-- Q: Where is configuration file located and can path be overridden? → A: NEEDS CLARIFICATION - Propose: Default ~/.dupectl.yaml (Windows: %USERPROFILE%\.dupectl.yaml), override with --config flag or DUPECTL_CONFIG env var
-- Q: What is complete JSON output schema for `get duplicates --json`? → A: NEEDS CLARIFICATION - Propose: Document JSON structure with field names (snake_case), types, nesting, timestamp format (ISO 8601), example output
-- Q: What table rendering library/style is used for human-readable output? → A: NEEDS CLARIFICATION - Propose: Use Go library like `olekukonko/tablewriter` or `rodaine/table`, specify ASCII vs Unicode box-drawing, column alignment rules
-- Q: Is non-interactive mode supported for scripting (--yes flag to auto-accept confirmations)? → A: NEEDS CLARIFICATION - Propose: Add --yes/-y flag to skip all confirmation prompts (root registration, destructive deletes), exit with error if confirmation required but non-interactive
+- Q: What exit codes should CLI commands return (success, user error, system error, cancelled)? → A: **RESOLVED** - Exit code 0 (success - operation completed without errors), 1 (user error - invalid args, file not found, root not registered, permission denied), 2 (system error - database failure, I/O error, configuration invalid, unable to proceed), 130 (SIGINT/SIGTERM - interrupted, checkpoint saved, clean shutdown)
+- Q: What CHECK constraints should enforce data integrity (hash_algorithm values, scan_mode values, boolean flags, non-negative counts)? → A: **RESOLVED** - Add SQL CHECK constraints: `hash_algorithm IN ('sha256', 'sha512', 'sha3-256')`, `scan_mode IN ('all', 'folders', 'files')`, `removed IN (0, 1)`, `completed IN (0, 1)`, `size >= 0`, `folder_count >= 0`, `file_count >= 0`, `total_size >= 0`
+- Q: What SQLite PRAGMA settings are required (foreign_keys, synchronous, journal_mode)? → A: **RESOLVED** - Required PRAGMAs: `PRAGMA foreign_keys = ON` (critical for CASCADE delete enforcement), `PRAGMA journal_mode = WAL` (concurrent access support), `PRAGMA synchronous = FULL` (data safety over speed, prevents corruption on system crash). Document in quickstart.md initialization section and enforce in pkg/datastore/datastore.go connection setup.
+- Q: Where is configuration file located and can path be overridden? → A: **RESOLVED** - Default location: `~/.dupectl.yaml` on Unix/Linux/macOS, `%USERPROFILE%\.dupectl.yaml` on Windows. Override with `--config /path/to/config.yaml` flag (takes precedence) or `DUPECTL_CONFIG` environment variable. Configuration reload requires application restart.
+- Q: What is complete JSON output schema for `get duplicates --json`? → A: **RESOLVED** - JSON schema with snake_case field names, ISO 8601 timestamps:
+```json
+{
+  "duplicate_sets": [
+    {
+      "hash": "a3f5d8e2b1c4...",
+      "algorithm": "sha512",
+      "size_bytes": 1572864,
+      "file_count": 3,
+      "files": [
+        {
+          "path": "/full/absolute/path/to/file.pdf",
+          "mtime": "2025-12-23T10:00:00Z",
+          "first_scanned_at": "2025-12-23T09:30:00Z",
+          "last_scanned_at": "2025-12-24T08:15:00Z"
+        }
+      ]
+    }
+  ],
+  "total_duplicate_files": 5,
+  "total_duplicate_sets": 2,
+  "scan_timestamp": "2025-12-24T10:30:45Z"
+}
+```
+- Q: What table rendering library/style is used for human-readable output? → A: **RESOLVED** - Use Go library `olekukonko/tablewriter` for ASCII table rendering. Style: ASCII characters (cross-platform compatible), headers with separator line, left-aligned text columns, right-aligned numeric columns. Column width: truncate with ellipsis (...) for paths exceeding 60 characters, show full size/count values.
+- Q: Is non-interactive mode supported for scripting (--yes flag to auto-accept confirmations)? → A: **RESOLVED** - Add `--yes` or `-y` flag (global flag on root command) to skip all confirmation prompts (root folder registration, destructive operations like purge/delete). When flag set, system proceeds with default action. If confirmation required but running in non-interactive environment (no TTY), exit with code 2 and error message indicating --yes flag needed.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -220,6 +243,11 @@ A user wants to view the duplicate files that have been identified during scans,
 - **FR-017.2**: Duplicate query command MUST support optional --min-count filter to return only duplicate sets with at least N files (e.g., --min-count=3 shows only files with 3+ duplicates)
 - **FR-018**: System MUST provide command to query duplicate folders (exact matches) and partial folder duplicates with similarity percentage
 - **FR-022**: System MUST provide a command-line option to remove a registered path and delete all associated scan data (folders, files, hashes) for that path from the database
+- **FR-033**: System MUST provide purge command `dupectl purge [files|folders|all] <root-path>` to permanently delete removed entities from database with positional type argument (files, folders, or all) and optional `--before=YYYY-MM-DD` filter to delete only entities removed before specified date
+- **FR-034**: System MUST provide refresh command `dupectl refresh all <root-path>` to recalculate root folder statistics (folder_count, file_count, total_size, last_scan_date) from current database state without performing full scan
+- **FR-035**: System MUST provide verify command `dupectl verify all <root-path>` to check database consistency: foreign key integrity, orphaned records, timestamp validity, removed flag cascade correctness, and statistics accuracy. Optional `--repair` flag attempts automatic fixes. Output as table or `--json`.
+- **FR-036**: System MUST automatically reset removed=0 flag when scan encounters file that previously had removed=1, update last_scanned_at timestamp, and log info message "Restored file: {path} (previously removed)"
+- **FR-037**: System MUST automatically detect hash algorithm mismatch between configuration and stored hash_algorithm during file scan, recalculate hash with configured algorithm, update hash_value and hash_algorithm columns, and log migration summary "Rehashed {count} files from {old_algo} to {new_algo}"
 - **FR-023**: Each command-line option (--progress, --restart, --json, --min-count, path removal, etc.) MUST have automated tests that validate the option performs its intended function
 - **FR-024**: Each command-line option MUST be properly documented in the CLI interface help text (accessible via --help or -h flags), including option syntax, description, and usage examples
 - **FR-025**: Repository MUST include test fixtures (test folders and files) with known characteristics for automated testing, including: exact duplicate files, duplicate folder structures, partial folder duplicates, files with permission issues, and edge cases
@@ -263,6 +291,8 @@ A user wants to view the duplicate files that have been identified during scans,
 - **NFR-012 Usability**: All command-line options must include comprehensive help documentation accessible through standard --help flag with clear descriptions and usage examples
 - **NFR-013 Testability**: Test fixtures must be version-controlled in repository and structured to support both unit tests and integration tests, with clear separation between different test scenarios
 - **NFR-014 Testability**: Test suite must include unit tests (individual functions/modules), integration tests (complete workflows), and end-to-end tests (full system scenarios) with minimum 80% code coverage for core scanning and duplicate detection logic
+- **NFR-015 Configuration**: Configuration file location: `~/.dupectl.yaml` (Unix/Linux/macOS) or `%USERPROFILE%\.dupectl.yaml` (Windows). Override with `--config` flag or `DUPECTL_CONFIG` environment variable. All options (hash algorithm, worker pool size, progress interval) specified in YAML format. Configuration validates on startup with actionable error messages for invalid values. Configuration changes require application restart.
+- **NFR-015 Configuration**: All configuration options (hash algorithm, worker pool size, progress interval) MUST be specified in `~/.dupectl.yaml` config file (Windows: `%USERPROFILE%\.dupectl.yaml`) with override via `--config` flag or DUPECTL_CONFIG environment variable. Configuration validates on startup with actionable error messages for invalid values.
 
 ## Success Criteria *(mandatory)*
 
@@ -289,12 +319,16 @@ A user wants to view the duplicate files that have been identified during scans,
 - **SC-016**: All edge cases documented in specification have corresponding automated tests validating correct behavior
 - **SC-017**: Parallel scanning operations complete without race conditions, deadlocks, or data corruption when tested with multiple concurrent workers
 - **SC-018**: Users can configure worker pool size to optimize scanning performance based on their workload characteristics (many small files vs few large files)
+- **SC-019**: Users can permanently delete removed entities using purge command with type filter (files, folders, all) and optional date filter, freeing database storage
+- **SC-020**: Users can manually recalculate root folder statistics using refresh all command without performing full scan, completing in under 5 seconds for typical databases (<100K files)
+- **SC-021**: Users can detect database inconsistencies using verify all command, with clear report of issues found and successful automatic repair of safe issues when --repair flag used
+- **SC-022**: System successfully migrates hash algorithms when configuration changes, with file scan automatically rehashing all affected files and logging migration progress
 
 ## Assumptions
 
 - **A-001**: Secure cryptographic hashing (SHA-256 or stronger) provides sufficient collision resistance for duplicate detection - probability of hash collision for different file contents is negligible
 - **A-002**: SHA-512 is default hash algorithm, providing the lowest collision probability among the supported algorithms due to its 512-bit output, ensuring maximum reliability for duplicate detection
-- **A-002.1**: All scans within a deployment use the same hash algorithm configured in the application config file - mixed algorithms across concurrent operations are not supported
+- **A-002.1**: All scans within a deployment use the same hash algorithm configured in the application config file (`~/.dupectl.yaml` or `%USERPROFILE%\.dupectl.yaml`) - mixed algorithms across concurrent operations are not supported
 - **A-003**: File modification dates from filesystem are sufficiently reliable for highlighting potential version differences in partial matches
 - **A-004**: Users have read permissions for files they want to scan - permission-denied files will be logged and skipped
 - **A-005**: Folder structure changes during scan are rare edge case - current scan operates on snapshot of structure at scan start time
