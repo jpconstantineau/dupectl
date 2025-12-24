@@ -20,6 +20,29 @@
 - Q: How should permission errors be logged during scans? → A: Console only and mark in database for future scans
 - Q: What output format should the get duplicates command use? → A: Command line options for JSON or table format
 
+### Session 2025-12-24 (Checklist Review)
+
+**CRITICAL LIFECYCLE GAPS - Require Resolution Before Implementation**
+
+- Q: How can users rehash files that have NULL hash_value (failed initial hash, permission fixed later)? → A: NEEDS CLARIFICATION - Propose: leverage `dupectl scan files <root-path>` command to recalculate hashes for files with NULL hash_value or matching specific criteria (error status, hash algorithm mismatch)
+- Q: How can users permanently delete removed entities (files/folders flagged removed=1) from database? → A: NEEDS CLARIFICATION - Propose: Add `dupectl purge files <root-path>` `dupectl purge folders <root-path>` and `dupectl purge all <root-path>` command with optional --before=date filter to cleanup old removed records and free storage
+- Q: How can users manually clear stale scan checkpoints (abandoned scans with old updated_at timestamps)? → A: NEEDS CLARIFICATION - Existing --restart flag clears checkpoint for new scan, but propose: Add threshold detection (e.g., checkpoint older than 24 hours) with automatic prompt or `dupectl delete checkpoint <root-path>` command
+- Q: How can users retry files/folders with error_status after fixing permissions? → A: NEEDS CLARIFICATION - Propose: leverage `dupectl scan files <root-path>` command to reset error_status to NULL, or add --retry-errors flag to scan commands to force reprocessing of error entries
+- Q: How are root folder statistics (folder_count, file_count, total_size) recalculated after manual deletes or removed flag cascades? → A: NEEDS CLARIFICATION - Propose: Automatic recalculation on scan completion (already planned) + manual `dupectl refresh all <root-path>` command for on-demand updates
+- Q: What consistency check operations are available to detect orphaned records, invalid foreign keys, or data corruption? → A: NEEDS CLARIFICATION - Propose: Add `dupectl verify all <root-path>` command to check FK integrity, detect orphans, identify inconsistent timestamps, validate removed flag cascades, with optional --repair flag
+- Q: How does system handle files that reappear at same path after being marked removed=1? → A: NEEDS CLARIFICATION - Propose: During scan, if file exists and removed=1, automatically set removed=0 and update last_scanned_at (restore file to active state)
+- Q: What is the strategy for migrating to a different hash algorithm (rehash all files with new algorithm)? → A: NEEDS CLARIFICATION - leverage scan command to recalculate hashes when configuration is detected to have changed, overwriting old hash_value and updating hash type
+
+**PRODUCTION READINESS GAPS**
+
+- Q: What exit codes should CLI commands return (success, user error, system error, cancelled)? → A: NEEDS CLARIFICATION - Propose: Exit code 0 (success), 1 (user error: invalid args, not found), 2 (system error: database, filesystem, permission), 130 (SIGINT/user cancelled)
+- Q: What CHECK constraints should enforce data integrity (hash_algorithm values, scan_mode values, boolean flags, non-negative counts)? → A: NEEDS CLARIFICATION - Propose: Add SQL CHECK constraints for hash_algorithm IN ('sha256', 'sha512', 'sha3-256'), scan_mode IN ('all', 'folders', 'files'), removed/completed IN (0,1), size/counts >= 0
+- Q: What SQLite PRAGMA settings are required (foreign_keys, synchronous, journal_mode)? → A: NEEDS CLARIFICATION - Propose: `PRAGMA foreign_keys = ON` (critical for CASCADE), `PRAGMA journal_mode = WAL` (already planned), `PRAGMA synchronous = FULL` (safety over speed), document in quickstart.md
+- Q: Where is configuration file located and can path be overridden? → A: NEEDS CLARIFICATION - Propose: Default ~/.dupectl.yaml (Windows: %USERPROFILE%\.dupectl.yaml), override with --config flag or DUPECTL_CONFIG env var
+- Q: What is complete JSON output schema for `get duplicates --json`? → A: NEEDS CLARIFICATION - Propose: Document JSON structure with field names (snake_case), types, nesting, timestamp format (ISO 8601), example output
+- Q: What table rendering library/style is used for human-readable output? → A: NEEDS CLARIFICATION - Propose: Use Go library like `olekukonko/tablewriter` or `rodaine/table`, specify ASCII vs Unicode box-drawing, column alignment rules
+- Q: Is non-interactive mode supported for scripting (--yes flag to auto-accept confirmations)? → A: NEEDS CLARIFICATION - Propose: Add --yes/-y flag to skip all confirmation prompts (root registration, destructive deletes), exit with error if confirmation required but non-interactive
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Scan All Files and Folders (Priority: P1)
