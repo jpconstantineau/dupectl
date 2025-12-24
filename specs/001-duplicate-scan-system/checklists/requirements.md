@@ -65,4 +65,25 @@
   - Permission-denied files and folders saved in database with error status flag
   - Folders with permission issues recorded but contents not scanned
   - Error status tracking for both files and folders to prevent repeated access attempts
+  - Comprehensive testing requirements added:
+    * Integration tests for complete workflows (register → scan → query → verify)
+    * Checkpoint save/resume testing with intentional interruptions
+    * Error handling tests for permission errors, invalid paths, corruption
+    * Database operation tests for schema, persistence, queries, cascading
+    * Signal handling tests (SIGINT/SIGTERM graceful shutdown)
+    * Concurrent operation tests (checkpoint locking)
+    * Parallel worker operation tests (race conditions, deadlocks)
+    * Worker pool shutdown and cleanup tests
+    * Work distribution across multiple workers tests
+    * Container deployment tests (checkpoint persistence across restarts)
+    * Minimum 80% code coverage requirement for core logic
+    * CI/CD pipeline integration
+  - Parallel/concurrent operations support:
+    * Configurable worker pool size for folder traversal and file hashing
+    * Default worker count based on CPU cores
+    * Thread-safe/goroutine-safe data structures and synchronization
+    * Database connection pooling for concurrent worker access
+    * Protection against race conditions and deadlocks
+    * Graceful worker failure handling
+    * Atomic work queue operations
 - Specification remains ready for `/speckit.clarify` or `/speckit.plan` phase

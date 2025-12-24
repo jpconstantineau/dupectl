@@ -133,6 +133,10 @@ A user wants to view the duplicate files that have been identified during scans,
 - What happens when multiple scan processes start simultaneously trying to resume the same checkpoint? First process to acquire checkpoint lock proceeds with scan; other processes detect active scan and exit or wait
 - What happens when checkpoint data is corrupted in database? System detects corruption on startup, logs error, and requires --restart flag to begin fresh scan
 - What happens in containerized environment when database is on shared volume but container is replaced? New container instance detects incomplete scan checkpoint and automatically resumes from where previous container stopped
+- What happens when multiple workers try to hash the same file simultaneously? System uses work queue with atomic dequeue operations ensuring each file is processed by exactly one worker
+- What happens when a worker crashes or panics during hashing/traversal? Other workers continue unaffected; failed work item is either retried by another worker or skipped with error logged
+- What happens when worker pool size is configured larger than number of available CPU cores? System allows configuration but may see diminishing returns or performance degradation due to context switching overhead
+- What happens when shutdown signal is received while workers are processing files? System stops accepting new work, waits for in-flight operations to complete (with 5 second timeout), saves checkpoint of completed work, then exits
 
 ## Requirements *(mandatory)*
 
@@ -175,6 +179,12 @@ A user wants to view the duplicate files that have been identified during scans,
 - **FR-015**: System MUST allow users to configure hash algorithm selection in configuration file with options: SHA-512 (default), SHA-256, SHA3-256, applied globally to all scan operations
 - **FR-015.1**: System MUST validate all configuration options at startup, rejecting invalid values with clear error messages indicating acceptable values and current configuration source (file path)
 - **FR-015.2**: Each configuration option MUST have automated tests that validate: default value behavior, valid value acceptance, invalid value rejection, and runtime behavior with configured values
+- **FR-015.3**: System MUST allow users to configure number of worker threads/goroutines for parallel operations in configuration file with default value appropriate for typical hardware (e.g., number of CPU cores)
+- **FR-015.4**: System MUST support parallel folder tree traversal using configurable number of workers to optimize performance for directory structures with many small files
+- **FR-015.5**: System MUST support parallel file hashing using configurable number of workers to optimize performance for large files where hashing is the bottleneck
+- **FR-015.6**: Parallel operations MUST be implemented with proper synchronization mechanisms to prevent race conditions when accessing shared resources (database connections, scan state, checkpoint data)
+- **FR-015.7**: Parallel operations MUST be designed to prevent deadlocks through proper lock ordering and timeout mechanisms
+- **FR-015.8**: Worker pool configuration MUST be validated at startup, rejecting values less than 1 or greater than reasonable maximum (e.g., 100) with clear error messages
 - **FR-016**: System MUST store hash algorithm type with each file record to enable future algorithm migrations and maintain data integrity across configuration changes
 - **FR-019**: System MUST record the timestamp (UTC) of when a file was first entered in the database during the initial scan of that file
 - **FR-020**: System MUST update the "last scanned" timestamp field (UTC) when a file is encountered during subsequent scans of the same path
@@ -192,6 +202,13 @@ A user wants to view the duplicate files that have been identified during scans,
 - **FR-025**: Repository MUST include test fixtures (test folders and files) with known characteristics for automated testing, including: exact duplicate files, duplicate folder structures, partial folder duplicates, files with permission issues, and edge cases
 - **FR-025.1**: Test fixtures MUST be organized under a dedicated test data directory (e.g., tests/fixtures/ or testdata/) with documented structure and expected test outcomes
 - **FR-025.2**: Test fixtures MUST include files with known hash values, sizes, and relationships to enable deterministic validation of duplicate detection logic
+- **FR-026**: System MUST include integration tests covering complete workflows: root registration → scan → query → results verification
+- **FR-026.1**: Integration tests MUST validate checkpoint save/resume functionality by intentionally interrupting scans and verifying successful resumption
+- **FR-026.2**: Integration tests MUST validate error handling paths including permission-denied files/folders, invalid paths, and corrupted checkpoints
+- **FR-027**: System MUST include database operation tests validating: schema creation, data persistence, query correctness, foreign key relationships, and cascading operations (removed flag propagation)
+- **FR-030**: System MUST include signal handling tests validating graceful shutdown on SIGINT/SIGTERM with checkpoint save and clean exit within 5 seconds
+- **FR-031**: System MUST include concurrent operation tests validating checkpoint locking prevents multiple scan processes from running simultaneously on the same root folder
+- **FR-032**: System MUST include containerized deployment tests validating checkpoint persistence and resume across container stop/start cycles
 
 ### Key Entities
 
@@ -213,12 +230,16 @@ A user wants to view the duplicate files that have been identified during scans,
 - **NFR-005 Observability**: Log all scan operations including start/end times, files processed, errors encountered, and results summary
 - **NFR-006 Security**: Handle file and folder access permissions gracefully - display permission errors to console during scan, mark affected files and folders in database with error status flag to avoid repeated attempts in future scans, and continue with remaining items without crashing
 - **NFR-007 Maintainability**: Separate concerns: folder traversal logic, file hashing logic, duplicate detection logic, and database operations should be in distinct modules
+- **NFR-007.1 Concurrency**: Parallel operations (folder traversal, file hashing) must use thread-safe/goroutine-safe data structures and synchronization primitives to ensure data integrity
+- **NFR-007.2 Concurrency**: Database operations from multiple workers must use connection pooling and proper transaction isolation to prevent race conditions and ensure consistency
+- **NFR-007.3 Concurrency**: Worker pool implementation must gracefully handle worker failures without affecting other workers or causing system-wide crashes
 - **NFR-008 Graceful Shutdown**: Handle SIGINT/SIGTERM during scans by immediately saving checkpoint state to database, flushing all pending writes, and providing clean exit within 5 seconds to support container orchestration systems
 - **NFR-009 Upgradability**: Database schema for scan results should support versioning to enable future enhancements without data loss
 - **NFR-010 Dependencies**: Justify hash algorithm library choice - prefer standard library implementations over external dependencies
 - **NFR-011 Testability**: All command-line options and configuration options must have corresponding automated tests validating correct behavior, error handling, and validation logic
 - **NFR-012 Usability**: All command-line options must include comprehensive help documentation accessible through standard --help flag with clear descriptions and usage examples
 - **NFR-013 Testability**: Test fixtures must be version-controlled in repository and structured to support both unit tests and integration tests, with clear separation between different test scenarios
+- **NFR-014 Testability**: Test suite must include unit tests (individual functions/modules), integration tests (complete workflows), and end-to-end tests (full system scenarios) with minimum 80% code coverage for core scanning and duplicate detection logic
 
 ## Success Criteria *(mandatory)*
 
@@ -241,6 +262,10 @@ A user wants to view the duplicate files that have been identified during scans,
 - **SC-012**: Repository includes comprehensive test fixtures enabling 100% automated validation of duplicate detection logic without requiring external test data
 - **SC-013**: All configuration options are validated at startup and have automated tests covering default values, valid inputs, invalid inputs, and runtime behavior
 - **SC-014**: Users can manage multiple root folders with get root command providing clear overview of all registered roots, their scan status, and storage usage in table format
+- **SC-015**: Test suite achieves minimum 80% code coverage for core logic (scanning, hashing, duplicate detection, database operations) with passing unit, integration, and end-to-end tests
+- **SC-016**: All edge cases documented in specification have corresponding automated tests validating correct behavior
+- **SC-017**: Parallel scanning operations complete without race conditions, deadlocks, or data corruption when tested with multiple concurrent workers
+- **SC-018**: Users can configure worker pool size to optimize scanning performance based on their workload characteristics (many small files vs few large files)
 
 ## Assumptions
 
@@ -269,6 +294,10 @@ A user wants to view the duplicate files that have been identified during scans,
 - **A-022**: Cascading removed flag from folder to all contained files/subfolders is implemented efficiently using database queries with hierarchical path matching rather than recursive individual updates
 - **A-023**: Checkpoints are saved to database both periodically during scan (e.g., after each folder completion) and immediately on shutdown signal to minimize loss of progress while maintaining database performance
 - **A-024**: Duplicate detection is purely content-based (size + hash) and completely independent of filename, file path, or file metadata like modification date - this enables detection of renamed or moved duplicates
+- **A-025**: Test suite runs in CI/CD pipeline on every commit with automated pass/fail gates preventing merge of code that breaks tests or reduces coverage below threshold
+- **A-026**: Default worker pool size is set to number of CPU cores, assuming this provides good balance for mixed workloads; users can tune based on their specific file size distribution and I/O characteristics
+- **A-027**: Parallel folder traversal is most beneficial for directory structures with many folders and small files; parallel file hashing is most beneficial for fewer large files - configuration allows users to optimize for their use case
+- **A-028**: SQLite with WAL mode provides sufficient concurrent read/write performance for multiple workers; database connection pool size should be at least equal to worker count to prevent bottlenecks
 
 ## Dependencies
 
@@ -302,6 +331,13 @@ A user wants to view the duplicate files that have been identified during scans,
 - No folder traversal implementation - cmd/scanFolders.go is stub only
 - No file hashing implementation - no pkg/scanner or pkg/hash module exists
 - No hash algorithm configuration reading from config file
+- No worker pool implementation for parallel folder traversal
+- No worker pool implementation for parallel file hashing
+- No work queue with atomic operations for distributing work to workers
+- No synchronization mechanisms (mutexes, channels) for thread-safe operations
+- No database connection pooling for concurrent worker access
+- No worker failure handling and retry logic
+- No graceful worker pool shutdown on SIGINT/SIGTERM
 - No progress reporting mechanism with configurable time intervals
 - No checkpoint save/restore logic for scan interruption handling
 - No signal handlers (SIGINT/SIGTERM) to save checkpoint before shutdown
@@ -335,14 +371,27 @@ A user wants to view the duplicate files that have been identified during scans,
 - No test fixtures for partial folder duplicate scenarios
 - No test fixtures for edge cases (empty files, permission errors, special characters)
 - No documentation describing test fixture structure and expected outcomes
+- No integration tests for complete workflows (register → scan → query → verify)
+- No tests for checkpoint save/resume functionality
+- No tests for error handling paths (permissions, invalid paths, corruption)
+- No database operation tests (schema, persistence, queries, cascading)
+- No signal handling tests (SIGINT/SIGTERM graceful shutdown)
+- No concurrent operation tests (checkpoint locking)
+- No tests for parallel worker operations (race conditions, deadlocks)
+- No tests for worker pool shutdown and cleanup
+- No tests for work distribution across multiple workers
+- No containerized deployment tests (checkpoint persistence across restarts)
+- No test coverage measurement or minimum coverage enforcement
+- No CI/CD pipeline configuration for automated test execution
 
 **Configuration (Priority: Must Have)**
 - No hash algorithm config setting in viper defaults (setDefaults in root.go)
+- No worker pool size config setting (for parallel folder traversal and file hashing)
 - No progress interval config setting
 - No configuration documentation for scan settings
 - No configuration validation logic at startup
 - No tests for configuration option validation (valid/invalid values)
-- No tests for configuration option runtime behavior (hash algorithm selection, progress interval)
+- No tests for configuration option runtime behavior (hash algorithm selection, progress interval, worker pool size)
 
 ### Moderate Gaps
 
