@@ -100,6 +100,21 @@
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
 
+### Non-Functional Requirements *(constitution-driven)*
+
+Address how this feature meets constitution principles:
+
+- **NFR-001 Performance**: [e.g., "Hash calculation completes in <X ms", "Scan rate ≥1000 files/sec"]
+- **NFR-002 Portability**: [e.g., "Works on Windows/Linux/macOS without platform-specific code"]
+- **NFR-003 Observability**: [e.g., "Provides progress indication", "Logs operations to stderr"]
+- **NFR-004 Security**: [e.g., "Validates all user input", "Uses parameterized queries"]
+- **NFR-005 Maintainability**: [e.g., "Functions <50 lines", "Full GoDoc coverage"]
+- **NFR-006 Upgradability**: [e.g., "Database migration included", "Backward compatible config"]
+- **NFR-007 Graceful Shutdown**: [e.g., "Handles SIGINT", "Persists state on interrupt"]
+- **NFR-008 Dependencies**: [e.g., "Uses stdlib only", "Justifies new dependency X for Y reason"]
+
+*Mark with NEEDS CLARIFICATION if constitution requirement unclear for this feature*
+
 ## Success Criteria *(mandatory)*
 
 <!--

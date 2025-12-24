@@ -50,7 +50,9 @@ description: "Task list template for feature implementation"
 
 - [ ] T001 Create project structure per implementation plan
 - [ ] T002 Initialize [language] project with [framework] dependencies
-- [ ] T003 [P] Configure linting and formatting tools
+- [ ] T003 [P] Configure linting and formatting tools (golangci-lint for Go)
+- [ ] T004 [P] Setup testing framework and coverage reporting
+- [ ] T005 [P] Configure CI/CD pipeline for automated builds and tests
 
 ---
 
@@ -60,14 +62,25 @@ description: "Task list template for feature implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-Examples of foundational tasks (adjust based on your project):
+**Constitution Compliance Tasks**:
 
-- [ ] T004 Setup database schema and migrations framework
-- [ ] T005 [P] Implement authentication/authorization framework
-- [ ] T006 [P] Setup API routing and middleware structure
-- [ ] T007 Create base models/entities that all stories depend on
-- [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 Setup environment configuration management
+- [ ] T010 [P] Setup structured logging to stderr with log levels (Observability)
+- [ ] T011 [P] Implement signal handling for SIGINT/SIGTERM (Graceful Shutdown)
+- [ ] T012 [P] Setup cross-platform path handling utilities (Portability)
+- [ ] T013 [P] Configure database migrations framework with versioning (Upgradability)
+- [ ] T014 [P] Implement progress indication utilities for long operations (UX Consistency)
+- [ ] T015 [P] Setup error types with actionable messages (UX Consistency)
+- [ ] T016 [P] Create performance monitoring/profiling hooks (Performance)
+- [ ] T017 [P] Setup configuration management (env vars/config files) (12-Factor CLI)
+
+**Core Infrastructure Examples** (adjust based on your project):
+
+- [ ] T020 Setup database schema and migrations framework
+- [ ] T021 [P] Implement authentication/authorization framework
+- [ ] T022 [P] Setup API routing and middleware structure
+- [ ] T023 Create base models/entities that all stories depend on
+- [ ] T024 Configure error handling and logging infrastructure
+- [ ] T025 Setup environment configuration management
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -149,7 +162,21 @@ Examples of foundational tasks (adjust based on your project):
 ## Phase N: Polish & Cross-Cutting Concerns
 
 **Purpose**: Improvements that affect multiple user stories
+**Constitution Compliance**:
 
+- [ ] TXXX Verify test coverage ≥70% across all new code (Testing)
+- [ ] TXXX Verify all functions <50 lines, complexity ≤10 (Clean Code)
+- [ ] TXXX Run golangci-lint with zero warnings (Code Quality)
+- [ ] TXXX Verify all public APIs have GoDoc comments (Maintainability)
+- [ ] TXXX Test on Windows, Linux, macOS platforms (Portability)
+- [ ] TXXX Verify graceful shutdown works in all commands (Graceful Shutdown)
+- [ ] TXXX Load test performance requirements met (Performance)
+- [ ] TXXX Security audit: input validation, SQL injection, path traversal (Security)
+- [ ] TXXX Verify backward compatibility with previous version (Backward Compatibility)
+- [ ] TXXX Test database migration rollback scenario (Upgradability)
+- [ ] TXXX Verify all dependencies justified in docs (Minimal Dependencies)
+
+**General Polish**:
 - [ ] TXXX [P] Documentation updates in docs/
 - [ ] TXXX Code cleanup and refactoring
 - [ ] TXXX Performance optimization across all stories

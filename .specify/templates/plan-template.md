@@ -31,7 +31,22 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Verify compliance with DupeCTL Constitution (v1.0.0):
+
+- [ ] **Clean Code & Quality**: Functions single-purpose, descriptive names, <50 lines, low complexity
+- [ ] **Clean Architecture**: Domain logic separated, dependencies point inward, no circular deps
+- [ ] **Testing**: Test coverage ≥70%, test types identified (unit/integration/contract/e2e)
+- [ ] **UX Consistency**: Commands follow verb-noun pattern, error messages actionable, progress indication
+- [ ] **Performance**: Meets defined thresholds (hash speed, scan rate, API latency, memory limits)
+- [ ] **Dependencies**: Uses Go stdlib first, new dependencies justified and approved
+- [ ] **Maintainability**: GoDoc comments, no hardcoded paths, config via env/flags
+- [ ] **Upgradability**: Database migrations planned, backward compatibility maintained
+- [ ] **Observability**: Logging strategy defined, progress visibility, metrics identified
+- [ ] **Portability**: Cross-platform path handling, no OS-specific assumptions
+- [ ] **Graceful Shutdown**: Signal handling planned, state persistence designed, resume capability
+- [ ] **12-Factor CLI**: Config external, stateless commands, disposable processes, structured logs
+
+**Violations Requiring Justification**: [List any principles that cannot be met with technical justification]
 
 ## Project Structure
 
