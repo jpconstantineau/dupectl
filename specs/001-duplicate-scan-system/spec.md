@@ -5,6 +5,16 @@
 **Status**: Draft  
 **Input**: User description: "the scan set of cli commands either scan all files and folders, scan all folders or scan all files. The folder command of the cli will add the folder to be monitored and start the recursive scan of the folder tree but not start the scanning of the files in each folder. Scanning of the files includes hashing each file and add their hash to the database entries. duplicates files are identified when both their sizes and hashes match. duplicate folders are found when all files within their subtree are identical according to the file matching logic. Partial folder duplicates can be found when only a subset of the files in a folder are found to be identical. The system highlights potential matches when partial folder matches but the key differences are either for missing files from one set to another and/or when files of the same name dont match but have a different date."
 
+## Clarifications
+
+### Session 2025-12-23
+
+- Q: How do users configure hash algorithm choice (SHA-256, SHA-512, SHA3-256)? → A: Global configuration in config file only - all scans use same algorithm
+- Q: What is the progress indication update frequency and mechanism? → A: Console output every N seconds (by default 10 seconds), configurable
+- Q: When scans are interrupted, should system resume from checkpoint or restart from beginning? → A: Resume from last checkpoint - track progress in database and continue where stopped
+- Q: What is the minimum similarity threshold for detecting partial folder duplicates? → A: 50% minimum similarity threshold
+- Q: Should scan data (files/folders/hashes) use existing agent tables or new dedicated tables? → A: Hybrid - use existing agent/host relationships but separate tables for file/folder/hash data
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Scan All Files and Folders (Priority: P1)
@@ -67,13 +77,13 @@ A user wants to find folders that are mostly similar but not identical - where a
 
 1. **Given** two folders where 70% of files are identical, **When** user queries for partial folder duplicates, **Then** the system identifies both folders as potential matches with similarity percentage and lists matching/non-matching files
 2. **Given** partial folder matches exist, **When** user views details, **Then** the system highlights key differences: files missing from each side and files with same name but different modification dates
-3. **Given** user wants to filter partial matches, **When** user specifies minimum similarity threshold (e.g., 80%), **Then** the system returns only folder pairs meeting or exceeding that threshold
+3. **Given** user wants to filter partial matches, **When** user specifies minimum similarity threshold (e.g., 80%), **Then** the system returns only folder pairs meeting or exceeding that threshold (default minimum is 50% if not specified)
 
 ---
 
 ### Edge Cases
 
-- What happens when a scan is interrupted mid-process (system crash, user cancellation)?
+- What happens when a scan is interrupted mid-process (system crash, user cancellation)? System resumes from last checkpoint using database-tracked progress
 - How does system handle files that cannot be read due to permissions?
 - What happens when file sizes are identical but hashes differ?
 - How does system handle symbolic links, shortcuts, or hard links?
@@ -90,34 +100,39 @@ A user wants to find folders that are mostly similar but not identical - where a
 - **FR-002**: System MUST recursively traverse folder trees starting from registered root folders
 - **FR-003**: System MUST calculate cryptographic hash for each file during file scanning using configurable hash algorithm with options limited to secure algorithms with low collision rates (SHA-256, SHA-512, SHA3-256)
 - **FR-004**: System MUST store folder structure, file metadata (path, size, modification date), hash values, and hash algorithm type in database
+- **FR-004.1**: System MUST use dedicated database tables for folders and files (separate from existing agent/host/owner/policy tables) while maintaining foreign key relationships to existing RootFolder, Agent, and Host entities for organizational tracking
 - **FR-005**: System MUST identify duplicate files by matching both file size AND hash value
 - **FR-006**: System MUST identify duplicate folders when all files within their entire subtrees match according to file duplicate logic
-- **FR-007**: System MUST detect partial folder duplicates when a subset of files match
+- **FR-007**: System MUST detect partial folder duplicates when a subset of files match with minimum similarity threshold of 50%
+- **FR-007.1**: Partial folder duplicate queries MAY allow user to specify higher similarity thresholds to filter results (e.g., 70%, 80%), but default minimum is 50%
 - **FR-008**: System MUST highlight key differences in partial matches: missing files from either side and files with same name but different dates
 - **FR-009**: System MUST distinguish between folder registration (folder scan) and file content analysis (file scan)
 - **FR-010**: Folder scan MUST register folder hierarchy without calculating file hashes
 - **FR-011**: File scan MUST process files within already-registered folders without re-traversing folder structure
 - **FR-012**: System MUST persist all scan results to database for later query and analysis
 - **FR-013**: System MUST provide progress indication during scan operations showing folders/files processed
-- **FR-014**: System MUST handle scan interruptions gracefully and allow resumption or restart
-- **FR-015**: System MUST allow users to configure hash algorithm selection with options: SHA-256 (default), SHA-512, SHA3-256
-- **FR-016**: System MUST store hash algorithm type with each file record to support mixed-algorithm environments
+- **FR-013.1**: Progress updates MUST be output to console at configurable time intervals with default of 10 seconds
+- **FR-014**: System MUST handle scan interruptions gracefully by tracking progress in database and allowing resumption from last successfully processed folder/file checkpoint
+- **FR-014.1**: System MUST persist scan state including current root folder, current subfolder path, and last processed file to enable reliable resumption after interruption
+- **FR-015**: System MUST allow users to configure hash algorithm selection in configuration file with options: SHA-256 (default), SHA-512, SHA3-256, applied globally to all scan operations
+- **FR-016**: System MUST store hash algorithm type with each file record to enable future algorithm migrations and maintain data integrity across configuration changes
 
 ### Key Entities
 
-- **Root Folder**: A top-level directory registered for monitoring, serves as the starting point for recursive scans
-- **Folder**: A directory within the monitored tree, has hierarchical relationship to parent folder and root, contains zero or more files and subfolders
-- **File**: A file within a monitored folder, has attributes: path, size, modification date, hash value, relationship to containing folder
+- **Root Folder**: A top-level directory registered for monitoring, serves as the starting point for recursive scans, links to existing Host, Owner, Agent, and Purpose entities from infrastructure tables
+- **Folder**: A directory within the monitored tree, stored in dedicated folders table, has hierarchical relationship to parent folder and root, contains zero or more files and subfolders
+- **File**: A file within a monitored folder, stored in dedicated files table, has attributes: path, size, modification date, hash value, hash algorithm type, relationship to containing folder
 - **Duplicate File Set**: A group of 2+ files with identical size and hash values
 - **Duplicate Folder Set**: A group of 2+ folders where all files in their complete subtrees match
 - **Partial Duplicate Folder Pair**: Two folders with overlapping but not identical file sets, includes similarity percentage and difference details
+- **Scan State**: Progress tracking record stored in database to enable scan resumption, includes current root folder ID, current folder path, and last processed file
 
 ### Non-Functional Requirements
 
 - **NFR-001 Performance**: File hashing should achieve minimum throughput of 50 MB/sec on standard hardware to enable reasonable scan times for large datasets
 - **NFR-002 Performance**: System should handle scanning of at least 100,000 files without memory overflow or excessive memory consumption (stay under 500 MB RAM)
 - **NFR-003 Portability**: Scan operations must work identically on Windows, Linux, and macOS without platform-specific behavior
-- **NFR-004 Observability**: Provide clear progress indication with counts of folders/files processed and estimated time remaining
+- **NFR-004 Observability**: Provide clear progress indication with counts of folders/files processed and estimated time remaining, updated at configurable intervals (default 10 seconds) to avoid excessive console output
 - **NFR-005 Observability**: Log all scan operations including start/end times, files processed, errors encountered, and results summary
 - **NFR-006 Security**: Handle file access permissions gracefully - log permission errors without crashing and continue with remaining files
 - **NFR-007 Maintainability**: Separate concerns: folder traversal logic, file hashing logic, duplicate detection logic, and database operations should be in distinct modules
@@ -133,14 +148,15 @@ A user wants to find folders that are mostly similar but not identical - where a
 - **SC-002**: System correctly identifies 100% of duplicate files in test scenarios with known duplicates (zero false positives or false negatives)
 - **SC-003**: System correctly identifies 100% of duplicate folders (identical subtrees) in test scenarios
 - **SC-004**: Users can distinguish between folder-only scan (fast structure mapping) and full scan (with hashing) and select appropriate mode for their needs
-- **SC-005**: System detects at least 80% of meaningful partial folder duplicates in test scenarios with similarity threshold of 70% or higher
+- **SC-005**: System detects at least 80% of meaningful partial folder duplicates in test scenarios with similarity threshold of 50% or higher
 - **SC-006**: Scan operations provide visible progress indication allowing users to monitor operation without anxiety about system hang
-- **SC-007**: Interrupted scans can be restarted without corrupting database or losing data integrity
+- **SC-007**: Interrupted scans can be resumed from last checkpoint without corrupting database or losing data integrity, avoiding need to reprocess already-scanned files
 
 ## Assumptions
 
 - **A-001**: Secure cryptographic hashing (SHA-256 or stronger) provides sufficient collision resistance for duplicate detection - probability of hash collision for different file contents is negligible
 - **A-002**: SHA-256 is default hash algorithm, providing good balance of security and performance for most use cases
+- **A-002.1**: All scans within a deployment use the same hash algorithm configured in the application config file - mixed algorithms across concurrent operations are not supported
 - **A-003**: File modification dates from filesystem are sufficiently reliable for highlighting potential version differences in partial matches
 - **A-004**: Users have read permissions for files they want to scan - permission-denied files will be logged and skipped
 - **A-005**: Folder structure changes during scan are rare edge case - current scan operates on snapshot of structure at scan start time
@@ -148,12 +164,14 @@ A user wants to find folders that are mostly similar but not identical - where a
 - **A-007**: Empty files (size 0) are considered duplicates if multiple exist - size and hash matching still applies
 - **A-008**: Partial folder duplicate similarity is calculated as: (matching files count / total unique files across both folders) * 100
 - **A-009**: System runs on filesystem that provides reliable file size and modification timestamp metadata
+- **A-010**: Checkpoint granularity for scan resumption is at the folder level - entire folder is reprocessed if interruption occurs mid-folder to ensure consistency
+- **A-011**: Dedicated scan tables (folders, files) remain loosely coupled to infrastructure tables - scan operations should function independently even if agent/host data is minimal or absent
 
 ## Dependencies
 
 - **D-001**: Requires database system already configured and accessible (based on existing dupedb.db file)
-- **D-002**: Depends on root folder registration capability (appears to exist based on cmd/addRoot.go)
-- **D-003**: May depend on host/owner/policy entities for access control and organizational features (existing API modules suggest this infrastructure)
+- **D-002**: Depends on root folder registration capability (appears to exist based on cmd/addRoot.go) which references existing Host, Owner, Agent, and Purpose entities
+- **D-003**: Scan data tables (files, folders, hashes) will maintain foreign key relationships to existing infrastructure tables (agents, hosts, root_folders) for organizational context while keeping scan-specific data architecturally separate
 
 ## Out of Scope
 
